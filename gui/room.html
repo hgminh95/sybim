@@ -19,12 +19,31 @@
 
   <div class="container">
     <div class="video_container">
+      <div id="help-overlay">
+        <div class="center-screen" style="color: white">
+          <div id="owner-help-text" style="width: 40%; display: none">
+            <h3>&#128079; You are the owner of the room</h3>
+            <p style="text-align: left">
+              Select the video you want to watch in the right side bar.
+              You can play, pause, or seek to certain time in the video; and these actions
+              will be applied to all other members of the room.
+            </p>
+          </div>
+          <div id="member-help-text" style="width: 40%; display: none">
+            <h3>&#128079; You have joined the room</h3>
+            <p style="text-align: left">
+              Select the same video as the owner's in the right side bar. You cannot control
+              the video player. Just wait for the owner to start and enjoy watching.
+            </p>
+          </div>
+        </div>
+      </div>
       <video id="video-player" controls>
         <track id="subtitle" kind="subtitles"/>
       </video>
     </div>
     <h2 id="sidebar-open-btn" class="icon"
-        style="cursor: pointer; position: absolute; top: 0; right: 1rem; display: none; color: white">
+        style="cursor: pointer; position: absolute; top: 0; right: 1rem; display: none; color: white; z-index: 4">
       &#9776;
     </h2>
     <div id="sidebar" class="sidebar">
@@ -35,9 +54,19 @@
       <hr style="width: 100%"/>
 
       <p id="connect-success-msg">
-        <strong>&#128994; Room: </strong><span id="room-text"></span>
-        . <strong id="user-count-text">0</strong> people in this room.
+        <strong>&#128994; Room: </strong><span id="room-text"></span></span>.
+        <strong id="user-count-text">0</strong> people in this room.
       </p>
+
+      <p style="margin-bottom: 0px; margin-top: 0px;"><strong>Invite Others?</strong> Use the link belows:</p>
+      <p style="margin-bottom: 0.5rem; margin-top: 1rem;" class="monospace">
+        <input id="room-link-share" value="https://sybim.live/r/example" readonly/>
+        <span id="copy-link-btn" class="icon" style="position: relative; top: -.25em; left: -.125em; cursor: pointer">
+          &#128196;<span style="position: absolute; top: .25em; left: .25em">&#128196;</span>
+        </span>
+      </p>
+
+      <hr style="width: 100%"/>
 
       <p style="margin-top: 0px"><strong>Video</strong></p>
       <input id="video-input" type="file" accept="video/*"/>
@@ -45,7 +74,9 @@
       <p><strong>Subtitles</strong></p>
       <input id="subtitle-input" type="file" accept=".vtt,.srt"/>
 
-      <p id="help-text" style="margin-bottom: 0px">
+      <hr style="width: 100%; margin-top: 1rem;"/>
+
+      <p id="help-text" style="margin-bottom: 0px;">
       </p>
       <p><strong><span class="icon">&#128161;</span> <u>Feel like talking?</u></strong> Use whatever chat apps you prefer.</p>
 
@@ -53,6 +84,8 @@
       <p><strong><span class="icon">&#129299;</span> Logs</strong></p>
       <pre id="logger"/>
     </div>
+
+    <div id="snackbar">Link Copied</div>
   </div>
 
   <script src="https://imshaikot.github.io/srt-webvtt/index.js"></script>
@@ -169,6 +202,7 @@
                 <strong><u>How to distribute the video to others?</u></strong> \
                 Use <a href="https://dropbox.com">Dropbox</a>, \
                 <a href="https://drive.google.com">Google Drive</a>, etc.';
+            $("owner-help-text").style.display = "block";
           } else if (event.data === "r:s") {
             this.is_connected = true;
             this.video_player.controls = false;
@@ -178,6 +212,7 @@
             $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
                 <strong><u>Where is the video?</u></strong> \
                 Ask the owner of this room.';
+            $("member-help-text").style.display = "block";
           } else {
             const handleCmd = cmd => {
               if (!this.video_player)
@@ -292,6 +327,16 @@
   <script>
     let room = window.location.pathname.split('/').pop();
     $("room-text").innerHTML = room;
+    $("room-link-share").value = window.location.protocol + "//" + window.location.host +
+        "/r/" + room;
+    $("copy-link-btn").onclick = e => {
+      $("room-link-share").select();
+      document.execCommand("copy");
+
+      let x = $("snackbar");
+      x.className = "show";
+      setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
+    }
 
     let videoPlayer = $("video-player");
 
@@ -306,6 +351,7 @@
         logError('Cannot play this file');
         return;
       } else {
+        $("help-overlay").style.display = "none";
         calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
         videoPlayer.src = URL.createObjectURL(file);
         controller.requestStatus();
