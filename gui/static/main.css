@@ -16,6 +16,15 @@ a, a:visited {
   font-size: 80%;
 }
 
+.buy_coffee:before {
+  content: "\1F644";
+}
+
+.buy_coffee:hover:before {
+  content: "\1F60D";
+}
+
+
 #help-overlay {
   position: relative;
   width: 100%;
