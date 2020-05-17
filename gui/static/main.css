@@ -89,6 +89,7 @@ a, a:visited {
   height: 100vh;
   display: flex;
   flex-direction: column;
+	overflow-y: auto;
 }
 
 #video-player {

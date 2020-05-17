@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
   <title>SyBim</title>
   <link rel="stylesheet" type="text/css" href="/static/main.css">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
@@ -16,17 +18,20 @@
     <br/>
     <br/>
     <p>
-      <a id="join_link" href="#"><strong>Join</strong></a> a room
-      <input id="room_input" class="text"/>
+      <a id="join-link" href="#"><strong>Join</strong></a> a room
+      <input id="room-input" pattern="[a-zA-Z0-9]+" class="text"/>
     </p>
-    <p>Or <a id="room_link" href=""><strong>Create</strong></a> a new one.</p>
+    <p>Or <a id="room-link" href=""><strong>Create</strong></a> a new one.</p>
 
     <div class="footer">
       <span style="float: left; margin-left: 1rem">Copyright &copy; hgminh. All right reserved.</span>
       <a style="margin-right: 1rem" href="/faq/"><strong>FAQ</strong></a>
     </div>
+
+    <div id="snackbar">Invalid Room ID</div>
   </div>
 
+  <script src="/static/base.js"></script>
   <script>
     function generateRoomId(length) {
        var result           = '';
@@ -38,14 +43,17 @@
        return result;
     }
 
-    document.getElementById("room_link").href = `/r/${generateRoomId(7)}`;
-    document.getElementById("join_link").onclick = e => {
+    $("room-link").href = `/r/${generateRoomId(7)}`;
+    $("join-link").onclick = e => {
       e.preventDefault();
-      let room = document.getElementById("room_input").value;
-      if (room !== '') {
+      let room = $("room-input").value;
+      if (room !== '' && !$("room-input").validity.patternMismatch) {
         window.location.href = `/r/${room}`;
       } else {
-        document.getElementById("room_input").focus();
+        $("room-input").focus();
+        let x = $("snackbar");
+        x.className = "show";
+        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
       }
     };
   </script>

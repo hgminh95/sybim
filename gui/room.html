@@ -1,6 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
   <title>SyBim</title>
   <link rel="stylesheet" type="text/css" href="/static/main.css">
   <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
@@ -49,7 +51,9 @@
     <div id="sidebar" class="sidebar">
       <h2>
         &#127910; <a href="/">SyBim</a>
-        <span id="sidebar-close-btn" class="icon" style="float: right; cursor: pointer">&#10060;</span>
+        <span id="sidebar-close-btn" class="icon" style="float: right; cursor: pointer">
+          &#x25B6;
+        </span>
       </h2>
       <hr style="width: 100%"/>
 
@@ -90,6 +94,7 @@
 
   <script src="https://imshaikot.github.io/srt-webvtt/index.js"></script>
   <script src="https://cdn.rawgit.com/satazor/SparkMD5/master/spark-md5.min.js"></script>
+  <script src="/static/base.js"></script>
   <script>
     function calculateMD5Hash(file, onFinish) {
 			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
@@ -117,8 +122,6 @@
 
       loadNext();
     }
-
-    let $ = id => document.getElementById(id);
   </script>
   <script>
     let logger = $("logger");
