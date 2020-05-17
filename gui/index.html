@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SyBim</title>
+  <link rel="stylesheet" type="text/css" href="/static/main.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="manifest" href="/static/site.webmanifest">
+</head>
+
+<body>
+  <div class="center-screen">
+		<h1>&#127910; <u>SyBim</u></h1>
+    <p>A time synchronization video player<a href="/faq/" style="text-decoration: none">*</a></p>
+    <br/>
+    <br/>
+    <p>
+      <a id="join_link" href="#"><strong>Join</strong></a> a room
+      <input id="room_input" class="text"/>
+    </p>
+    <p>Or <a id="room_link" href=""><strong>Create</strong></a> a new one.</p>
+
+    <div class="footer">
+      <span style="float: left; margin-left: 1rem">Copyright &copy; hgminh. All right reserved.</span>
+      <a style="margin-right: 1rem" href="/faq/"><strong>FAQ</strong></a>
+    </div>
+  </div>
+
+  <script>
+    function generateRoomId(length) {
+       var result           = '';
+       var characters       = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+       var charactersLength = characters.length;
+       for ( var i = 0; i < length; i++ ) {
+          result += characters.charAt(Math.floor(Math.random() * charactersLength));
+       }
+       return result;
+    }
+
+    document.getElementById("room_link").href = `/r/${generateRoomId(7)}`;
+    document.getElementById("join_link").onclick = e => {
+      e.preventDefault();
+      let room = document.getElementById("room_input").value;
+      if (room !== '') {
+        window.location.href = `/r/${room}`;
+      } else {
+        document.getElementById("room_input").focus();
+      }
+    };
+  </script>
+</body>
+
+</html>

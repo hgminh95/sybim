@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>SyBim</title>
+  <link rel="stylesheet" type="text/css" href="/static/main.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="manifest" href="/static/site.webmanifest">
+</head>
+
+<body>
+  <div id="overlay" class="overlay">
+    <div class="center-screen">
+      <div class="loader"></div>
+      <h2 style="color: white">Reconnecting...</h2>
+    </div>
+  </div>
+
+  <div class="container">
+    <div class="video_container">
+      <video id="video-player" controls>
+        <track id="subtitle" kind="subtitles"/>
+      </video>
+    </div>
+    <h2 id="sidebar-open-btn" class="icon"
+        style="cursor: pointer; position: absolute; top: 0; right: 1rem; display: none; color: white">
+      &#9776;
+    </h2>
+    <div id="sidebar" class="sidebar">
+      <h2>
+        &#127910; <a href="/">SyBim</a>
+        <span id="sidebar-close-btn" class="icon" style="float: right; cursor: pointer">&#10060;</span>
+      </h2>
+      <hr style="width: 100%"/>
+
+      <p id="connect-success-msg">
+        <strong>&#128994; Room: </strong><span id="room-text"></span>
+        . <strong id="user-count-text">0</strong> people in this room.
+      </p>
+
+      <p style="margin-top: 0px"><strong>Video</strong></p>
+      <input id="video-input" type="file" accept="video/*"/>
+
+      <p><strong>Subtitles</strong></p>
+      <input id="subtitle-input" type="file" accept=".vtt,.srt"/>
+
+      <p id="help-text" style="margin-bottom: 0px">
+      </p>
+      <p><strong><span class="icon">&#128161;</span> <u>Feel like talking?</u></strong> Use whatever chat apps you prefer.</p>
+
+      <hr style="width: 100%"/>
+      <p><strong><span class="icon">&#129299;</span> Logs</strong></p>
+      <pre id="logger"/>
+    </div>
+  </div>
+
+  <script src="https://imshaikot.github.io/srt-webvtt/index.js"></script>
+  <script src="https://cdn.rawgit.com/satazor/SparkMD5/master/spark-md5.min.js"></script>
+  <script>
+    function calculateMD5Hash(file, onFinish) {
+			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
+          chunkSize = 2097152, // read in chunks of 2MB
+          chunks = Math.ceil(file.size / chunkSize),
+          currentChunk = 0,
+          spark = new SparkMD5.ArrayBuffer(),
+          frOnload = function(e){
+            spark.append(e.target.result); // append array buffer
+            currentChunk++;
+            if (currentChunk < chunks)
+                loadNext();
+              else
+                onFinish(spark.end());
+					},
+          frOnerror = function () {};
+      function loadNext() {
+        let fileReader = new FileReader();
+        fileReader.onload = frOnload;
+        fileReader.onerror = frOnerror;
+        let start = currentChunk * chunkSize,
+        end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
+        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
+      };
+
+      loadNext();
+    }
+
+    let $ = id => document.getElementById(id);
+  </script>
+  <script>
+    let logger = $("logger");
+    logger.innerHTML = '';
+
+    function toLogStr(message) {
+      if (typeof message === 'object') {
+        return JSON && JSON.stringify ? JSON.stringify(message) : message;
+      } else {
+        return message;
+      }
+    }
+
+    function log(message) {
+      logger.innerHTML += toLogStr(message) + '<br/>';
+      logger.scrollTop = logger.scrollHeight;
+    }
+
+    function logError(message) {
+      logger.innerHTML += '<span class="error">' + toLogStr(message) + '</span><br/>';
+      logger.scrollTop = logger.scrollHeight;
+    }
+
+    function logSuccess(message) {
+      logger.innerHTML += '<span class="success">' + toLogStr(message) + '</span><br/>';
+      logger.scrollTop = logger.scrollHeight;
+    }
+
+    function toHHMMSS(seconds) {
+      let hh = Math.floor(seconds / (60 * 60));
+      let mm = Math.floor((seconds / 60) % 60);
+      let ss = Math.floor(seconds % 60);
+
+      if (hh > 0)
+        return `${hh > 9 ? '' : '0'}${hh}:${mm > 9 ? '' : '0'}${mm}:${ss > 9 ? '' : '0'}${ss}`;
+      else
+        return `${mm > 9 ? '' : '0'}${mm}:${ss > 9 ? '' : '0'}${ss}`;
+    }
+  </script>
+  <script>
+    class PlayerController {
+      constructor() {
+        this.socket = null;
+        this.video_player = null;
+        this.is_connected = false;
+        this.local_hash = '';
+        this.upstream_hash = '';
+        this.is_owner = true;
+        this.retryTimer = null;
+        this.heartbeatTimer = null;
+      }
+
+      init(videoPlayer) {
+        this.attach(videoPlayer);
+
+        let loc = window.location, new_uri;
+        if (loc.protocol === "https:")
+          new_uri = "wss:";
+        else
+          new_uri = "ws:";
+        new_uri += "//" + loc.host + "/ws";
+        this.socket = new WebSocket(new_uri);
+        this.socket.onopen = event => {
+          logSuccess('Connected to server');
+          this.onSocketOpen && this.onSocketOpen();
+          $("overlay").style.display = "none";
+          this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
+        };
+
+        this.socket.onmessage = event => {
+          if (event.data === "hb") {
+          } else if (event.data === "l:s") {
+            logSuccess('Logged on');
+          } else if (event.data === "r:o") {
+            this.is_connected = true;
+            this.video_player.controls = true;
+            this.is_owner = true;
+            logSuccess('You are the owner');
+
+            $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
+                <strong><u>How to distribute the video to others?</u></strong> \
+                Use <a href="https://dropbox.com">Dropbox</a>, \
+                <a href="https://drive.google.com">Google Drive</a>, etc.';
+          } else if (event.data === "r:s") {
+            this.is_connected = true;
+            this.video_player.controls = false;
+            this.is_owner = false;
+            logSuccess('Joined');
+
+            $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
+                <strong><u>Where is the video?</u></strong> \
+                Ask the owner of this room.';
+          } else {
+            const handleCmd = cmd => {
+              if (!this.video_player)
+                return;
+
+              let tokens = cmd.split(':');
+              if (tokens[0] == 'play') {
+                this.video_player.currentTime = parseFloat(tokens[1]);
+                this.video_player.play();
+              } else if (tokens[0] == 'pause') {
+                this.video_player.pause();
+                this.video_player.currentTime = parseFloat(tokens[1]);
+              } else if (tokens[0] == 'seek') {
+                this.video_player.currentTime = parseFloat(tokens[1]);
+              } else if (tokens[0] == 'hash') {
+                this.updateUpstreamHash(tokens[1]);
+              } else if (tokens[0] == 'user_count') {
+                $('user-count-text').innerHTML = tokens[1];
+              } else {
+                console.log(tokens[0]);
+              }
+            }
+
+            if (event.data.text) {
+              event.data.text().then(handleCmd);
+            } else {
+              handleCmd(event.data);
+            }
+          }
+        };
+
+        this.socket.onerror = event => {
+          console.log(event);
+          $("overlay").style.display = "block";
+          logError('Error!!!');
+
+          clearTimeout(this.retryTimer);
+          clearInterval(this.heartbeatTimer);
+          this.retryTimer = setTimeout(() => this.init(this.video_player), 5000);
+        };
+
+        this.socket.onclose = event => {
+          console.log(event);
+          $("overlay").style.display = "block";
+          logError('Connection closed');
+
+          clearTimeout(this.retryTimer);
+          clearInterval(this.heartbeatTimer);
+          this.retryTimer = setTimeout(() => this.init(this.video_player), 5000);
+        };
+      }
+
+      connect(room_name) {
+        this.socket.send(`r:j:${room_name}`);
+      }
+
+      attach(video_player) {
+        this.video_player = video_player;
+
+        this.video_player.onpause = e => {
+          if (this.video_player.readyState === 4) {
+            if (this.is_owner) {
+              this.socket.send(`c:b:pause:${e.target.currentTime}`);
+            }
+            log(`Pause @ ${toHHMMSS(e.target.currentTime)}`);
+          }
+        }
+
+        this.video_player.onplay = e => {
+          if (this.is_owner) {
+            this.socket.send(`c:b:play:${e.target.currentTime}`);
+          }
+          log(`Play @ ${toHHMMSS(e.target.currentTime)}`);
+        }
+
+        this.video_player.onseeked = e => {
+          if (this.is_owner) {
+            this.socket.send(`c:b:seek:${e.target.currentTime}`);
+          }
+          log(`Seek to ${toHHMMSS(e.target.currentTime)}`);
+        }
+      }
+
+      requestStatus() {
+        this.socket.send("c:rs");
+      }
+
+      updateLocalHash(md5) {
+        this.local_hash = md5;
+        this.socket.send(`c:h:hash:${md5}`);
+
+        this.compareHash();
+      }
+
+      updateUpstreamHash(md5) {
+        this.upstream_hash = md5;
+
+        this.compareHash();
+      }
+
+      compareHash() {
+        if (this.upstream_hash === "" || this.local_hash === "")
+          return;
+        if (this.upstream_hash === this.local_hash) {
+          log("Video file is good");
+        } else {
+          logError("Video does not match with owner");
+        }
+      }
+    }
+  </script>
+  <script>
+    let room = window.location.pathname.split('/').pop();
+    $("room-text").innerHTML = room;
+
+    let videoPlayer = $("video-player");
+
+    let controller = new PlayerController;
+    controller.onSocketOpen = () => controller.connect(room);
+    controller.init(videoPlayer);
+
+    $("video-input").onchange = evt => {
+      let file = evt.target.files[0];
+      let canPlay = videoPlayer.canPlayType(file.type);
+      if (canPlay === '' || canPlay === 'no') {
+        logError('Cannot play this file');
+        return;
+      } else {
+        calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
+        videoPlayer.src = URL.createObjectURL(file);
+        controller.requestStatus();
+      }
+    }
+
+    $("subtitle-input").onchange = evt => {
+      let file = evt.target.files[0];
+
+      const vttConverter = new WebVTTConverter(file);
+      vttConverter
+          .getURL()
+          .then(url => {
+            $("subtitle").src = url;
+            videoPlayer.textTracks[0].mode = 'showing';
+          })
+          .catch(err => {
+            console.log('Error: ' + err)
+          });
+    }
+
+    $("sidebar-close-btn").onclick = evt => {
+      $("sidebar").style.display = "none"; 
+      $("sidebar-open-btn").style.display = "block"; 
+    };
+    $("sidebar-open-btn").onclick = evt => {
+      $("sidebar").style.display = "block"; 
+      $("sidebar-open-btn").style.display = "none"; 
+    };
+  </script>
+
+</body>
+
+</html>
