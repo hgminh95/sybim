@@ -200,9 +200,10 @@
 
             $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
                 <strong><u>How to distribute the video to others?</u></strong> \
-                Use <a href="https://dropbox.com">Dropbox</a>, \
-                <a href="https://drive.google.com">Google Drive</a>, etc.';
+                Use <a href="https://dropbox.com" target="_blank">Dropbox</a>, \
+                <a href="https://drive.google.com" target="_blank">Google Drive</a>, etc.';
             $("owner-help-text").style.display = "block";
+            $("member-help-text").style.display = "none";
           } else if (event.data === "r:s") {
             this.is_connected = true;
             this.video_player.controls = false;
@@ -212,6 +213,7 @@
             $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
                 <strong><u>Where is the video?</u></strong> \
                 Ask the owner of this room.';
+            $("owner-help-text").style.display = "none";
             $("member-help-text").style.display = "block";
           } else {
             const handleCmd = cmd => {
