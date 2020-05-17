@@ -25,6 +25,10 @@
 
     <div class="footer">
       <span style="float: left; margin-left: 1rem">Copyright &copy; hgminh. All right reserved.</span>
+      <a id="buy-coffee-link" style="margin-right: 0.5rem"
+          href="https://www.buymeacoffee.com/hgminh" target="_blank">
+        <strong>&#128580; Buy Me A &#9749;</strong>
+      </a>
       <a style="margin-right: 1rem" href="/faq/"><strong>FAQ</strong></a>
     </div>
 
@@ -56,6 +60,18 @@
         setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
       }
     };
+
+    $("buy-coffee-link").onmouseover = e => {
+      $("buy-coffee-link").innerHTML = "<strong>&#128525; Buy Me A &#9749;</strong>";
+    }
+
+    $("buy-coffee-link").onmouseout = e => {
+      $("buy-coffee-link").innerHTML = "<strong>&#128580; Buy Me A &#9749;</strong>";
+    }
+
+    $("buy-coffee-link").onmouseleave = e => {
+      $("buy-coffee-link").innerHTML = "<strong>&#128580; Buy Me A &#9749;</strong>";
+    }
   </script>
 </body>
 
