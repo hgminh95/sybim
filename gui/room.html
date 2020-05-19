@@ -31,12 +31,29 @@
               will be applied to all other members of the room.
             </p>
           </div>
+
           <div id="member-help-text" style="width: 40%; display: none">
             <h3>&#128079; You have joined the room</h3>
             <p style="text-align: left">
               Select the same video as the owner's in the right side bar. You cannot control
               the video player. Just wait for the owner to start and enjoy watching.
             </p>
+          </div>
+
+          <div id="invalid-video-help-text" style="width: 40%; display: none">
+            <h3>&#128549; Unsupported video type</h3>
+            <div style="text-align: left">
+              </p>
+                The video cannot be played by the browser.
+                Please convert the file to appropriate format.
+              </p>
+              <strong><u>For Linux:</u></strong>
+              <p>Run following command in terminal
+                <pre>$ ffmpeg -vcodec copy -acodec aac -ac 2 -ab 128k -i &lt;input_file&gt; &lt;output_file&gt;</pre>
+              </p>
+              <strong><u>For Windows:</u></strong>
+              <p>TODO</p>
+            </div>
           </div>
         </div>
       </div>
@@ -162,6 +179,34 @@
     }
   </script>
   <script>
+    var helpController = {
+      hide() {
+        $('help-overlay').style.display = 'none';
+      },
+
+      showOwnerHelp() {
+        $('owner-help-text').style.display = 'block';
+        $('member-help-text').style.display = 'none';
+        $('invalid-video-help-text').style.display = 'none';
+        $('help-overlay').style.display = 'block';
+      },
+
+      showMemberHelp() {
+        $('owner-help-text').style.display = 'none';
+        $('member-help-text').style.display = 'block';
+        $('invalid-video-help-text').style.display = 'none';
+        $('help-overlay').style.display = 'block';
+      },
+
+      showInvalidVideoTypeHelp() {
+        $('owner-help-text').style.display = 'none';
+        $('member-help-text').style.display = 'none';
+        $('invalid-video-help-text').style.display = 'block';
+        $('help-overlay').style.display = 'block';
+      }
+    };
+  </script>
+  <script>
     class PlayerController {
       constructor() {
         this.socket = null;
@@ -205,8 +250,7 @@
                 <strong><u>How to distribute the video to others?</u></strong> \
                 Use <a href="https://dropbox.com" target="_blank">Dropbox</a>, \
                 <a href="https://drive.google.com" target="_blank">Google Drive</a>, etc.';
-            $("owner-help-text").style.display = "block";
-            $("member-help-text").style.display = "none";
+            helpController.showOwnerHelp();
           } else if (event.data === "r:s") {
             this.is_connected = true;
             this.video_player.controls = false;
@@ -216,8 +260,7 @@
             $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
                 <strong><u>Where is the video?</u></strong> \
                 Ask the owner of this room.';
-            $("owner-help-text").style.display = "none";
-            $("member-help-text").style.display = "block";
+            helpController.showMemberHelp();
           } else {
             const handleCmd = cmd => {
               if (!this.video_player)
@@ -353,10 +396,11 @@
       let file = evt.target.files[0];
       let canPlay = videoPlayer.canPlayType(file.type);
       if (canPlay === '' || canPlay === 'no') {
-        logError('Cannot play this file');
+        logError(`Cannot play ${file.type}`);
+        helpController.showInvalidVideoTypeHelp(file.type);
         return;
       } else {
-        $("help-overlay").style.display = "none";
+        helpController.hide();
         calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
         videoPlayer.src = URL.createObjectURL(file);
         controller.requestStatus();
