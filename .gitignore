@@ -1,4 +1,5 @@
 nginx.conf
+/gui/static/third_party
 
 
 # Created by https://www.gitignore.io/api/vim,c++,linux,python,windows
