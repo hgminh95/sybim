@@ -14,15 +14,15 @@
 </head>
 
 <body>
-  <div id="overlay" class="overlay">
+  <div id="reconnect-overlay">
     <div class="center-screen">
       <div class="loader"></div>
-      <h2 style="color: white">Reconnecting...</h2>
+      <h2 style="color: white">Connecting...</h2>
     </div>
   </div>
 
-  <div class="container">
-    <div class="video_container">
+  <div class="row">
+    <div class="video-container">
       <div id="help-overlay">
         <div class="center-screen" style="color: white">
           <div id="owner-help-text" style="width: 40%; display: none">
@@ -59,10 +59,12 @@
           </div>
         </div>
       </div>
+
       <video-js id="video-player" class="vjs-default-skin vjs-big-play-centered">
         <track id="subtitle" kind="subtitles"/>
       </video-js>
     </div>
+
     <h2 id="sidebar-open-btn" class="icon"
         style="cursor: pointer; position: absolute; top: 0; right: 1rem; display: none; color: white; z-index: 4">
       &#9776;
@@ -92,10 +94,10 @@
       <hr style="width: 100%"/>
 
       <p style="margin-top: 0px"><strong>Video</strong></p>
-      <input id="video-input" type="file" accept="video/*"/>
+      <input id="video-input" type="file" accept="video/*" style="min-height: 25px"/>
 
       <p><strong>Subtitles</strong></p>
-      <input id="subtitle-input" type="file" accept=".vtt,.srt"/>
+      <input id="subtitle-input" type="file" accept=".vtt,.srt" style="min-height: 25px"/>
 
       <hr style="width: 100%; margin-top: 1rem;"/>
 
@@ -105,11 +107,10 @@
 
       <hr style="width: 100%"/>
       <p><strong><span class="icon">&#129299;</span> Logs</strong></p>
-      <pre id="logger"/>
+      <pre id="logger" style="margin-top: 0px"/>
     </div>
-
-    <div id="snackbar">Link Copied</div>
   </div>
+  <div id="toast"></div>
 
   <script src="https://imshaikot.github.io/srt-webvtt/index.js"></script>
   <script src="https://cdn.rawgit.com/satazor/SparkMD5/master/spark-md5.min.js"></script>
@@ -239,13 +240,25 @@
         this.videoPlayer = null;
         this.isOwner = false;
         this.isConnected = false;
+        this.room = '';
       }
 
       connectToRoom(room) {
+        log(`Connecting to room ${room}...`);
+        if (this.room === '') { /* first time connect */
+          setTimeout(() => {
+            if (!this.isConnected) {
+              $("reconnect-overlay").style.display = "block";
+            }
+          }, 2000);
+        }
+
         this.room = room;
         this.socket = new WebSocket(getWSAddr());
         this.socket.onopen = event => {
+          this.isConnected = true;
           logSuccess('Websocket connected');
+          $("reconnect-overlay").style.display = "none";
           this.socket.send(`r:j:${room}`);
           this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
         };
@@ -261,7 +274,7 @@
         this.socket.onerror = event => {
           console.log(event);
           this.isConnected = false;
-          $("overlay").style.display = "block";
+          $("reconnect-overlay").style.display = "block";
           logError('Error!!!');
 
           clearTimeout(this.retryTimer);
@@ -272,7 +285,7 @@
         this.socket.onclose = event => {
           console.log(event);
           this.isConnected = false;
-          $("overlay").style.display = "block";
+          $("reconnect-overlay").style.display = "block";
           logError('Connection closed');
 
           clearTimeout(this.retryTimer);
@@ -282,11 +295,12 @@
       }
 
       reconnect() {
-        connectToRoom(this.room);
+        this.connectToRoom(this.room);
       }
 
       onBecomeOwner() {
         logSuccess('You are the owner');
+        toast("You are the owner");
         this.isOwner = true;
         helpController.showOwnerHelp();
 
@@ -297,6 +311,7 @@
 
       onBecomeMember() {
         logSuccess('Joined');
+        toast("Joined");
         this.isOwner = false;
         helpController.showMemberHelp();
 
@@ -313,7 +328,6 @@
           this.isConnected = true;
           this.onBecomeOwner();
         } else if (msg === "r:s") {
-          this.isConnected = true;
           this.onBecomeMember();
         } else {
           if (!this.videoPlayer)
@@ -387,8 +401,10 @@
           return;
         if (this.upstream_hash === this.local_hash) {
           log("Video file is good");
+          toast("Your video file matches with owner's")
         } else {
           logError("Video does not match with owner");
+          toast("Your video file does not match with owner's")
         }
       }
 
@@ -406,16 +422,14 @@
       $("room-link-share").select();
       document.execCommand("copy");
 
-      let x = $("snackbar");
-      x.className = "show";
-      setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
+      toast('Link Copied');
     }
 
     let videoPlayer = videojs('video-player', {
       controls: true,
       autoplay: false,
       preload: 'auto',
-      fluid: true,
+      /*fluid: true,*/
       children: {
         controlBar: {
           playToggle: true,
@@ -438,6 +452,7 @@
       let canPlay = videoPlayer.canPlayType(file.type);
       if (canPlay === '' || canPlay === 'no') {
         logError(`Cannot play ${file.type}`);
+        toast(`Cannot play selected video`);
         helpController.showInvalidVideoTypeHelp(file.type);
         return;
       } else {

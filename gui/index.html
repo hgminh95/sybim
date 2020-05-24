@@ -24,16 +24,15 @@
     <p>Or <a id="room-link" href=""><strong>Create</strong></a> a new one.</p>
 
     <div class="footer">
-      <span style="float: left; margin-left: 1rem">Copyright &copy; hgminh. All right reserved.</span>
+      <span style="float: left; margin-left: 1rem">&copy; 2020 hgminh. All right reserved.</span>
       <a id="buy-coffee-link" style="margin-right: 0.5rem"
           href="https://www.buymeacoffee.com/hgminh" target="_blank">
         <strong class="buy_coffee">Buy Me A &#9749;</strong>
       </a>
       <a style="margin-right: 1rem" href="/faq/"><strong>FAQ</strong></a>
     </div>
-
-    <div id="snackbar">Invalid Room ID</div>
   </div>
+  <div id="toast"></div>
 
   <script src="/static/base.js"></script>
   <script>
@@ -55,9 +54,7 @@
         window.location.href = `/r/${room}`;
       } else {
         $("room-input").focus();
-        let x = $("snackbar");
-        x.className = "show";
-        setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
+        toast("Invalid Room ID");
       }
     };
   </script>
