@@ -493,11 +493,6 @@
       $("sidebar").style.display = "flex";
       $("sidebar-open-btn").style.display = "none"; 
     };
-
-    /* Workaround for stupid videojs mouse-up event */
-    $("video-player").onmouseup = e => {
-      e.stopPropagation();
-    };
   </script>
 
 </body>
