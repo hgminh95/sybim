@@ -9,6 +9,8 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="manifest" href="/static/site.webmanifest">
+
+  <link href="https://vjs.zencdn.net/7.7.6/video-js.css" rel="stylesheet" />
 </head>
 
 <body>
@@ -57,9 +59,9 @@
           </div>
         </div>
       </div>
-      <video id="video-player" controls>
+      <video-js id="video-player" class="vjs-default-skin vjs-big-play-centered">
         <track id="subtitle" kind="subtitles"/>
-      </video>
+      </video-js>
     </div>
     <h2 id="sidebar-open-btn" class="icon"
         style="cursor: pointer; position: absolute; top: 0; right: 1rem; display: none; color: white; z-index: 4">
@@ -111,8 +113,10 @@
 
   <script src="https://imshaikot.github.io/srt-webvtt/index.js"></script>
   <script src="https://cdn.rawgit.com/satazor/SparkMD5/master/spark-md5.min.js"></script>
+  <script src="https://vjs.zencdn.net/7.7.6/video.js"></script>
   <script src="/static/base.js"></script>
   <script>
+
     function calculateMD5Hash(file, onFinish) {
 			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
           chunkSize = 2097152, // read in chunks of 2MB
@@ -153,7 +157,7 @@
     }
 
     function log(message) {
-      logger.innerHTML += toLogStr(message) + '<br/>';
+      logger.innerHTML += '<span>' + toLogStr(message) + '</span><br/>';
       logger.scrollTop = logger.scrollHeight;
     }
 
@@ -189,6 +193,11 @@
         $('member-help-text').style.display = 'none';
         $('invalid-video-help-text').style.display = 'none';
         $('help-overlay').style.display = 'block';
+
+        $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
+            <strong><u>How to distribute the video to others?</u></strong> \
+            Use <a href="https://dropbox.com" target="_blank">Dropbox</a>, \
+            <a href="https://drive.google.com" target="_blank">Google Drive</a>, etc.';
       },
 
       showMemberHelp() {
@@ -196,6 +205,10 @@
         $('member-help-text').style.display = 'block';
         $('invalid-video-help-text').style.display = 'none';
         $('help-overlay').style.display = 'block';
+
+        $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
+            <strong><u>Where is the video?</u></strong> \
+            Ask the owner of this room.';
       },
 
       showInvalidVideoTypeHelp() {
@@ -207,156 +220,164 @@
     };
   </script>
   <script>
-    class PlayerController {
+    function getWSAddr() {
+      let loc = window.location, new_uri;
+      if (loc.protocol === "https:")
+        new_uri = "wss:";
+      else
+        new_uri = "ws:";
+      new_uri += "//" + loc.host + "/ws";
+
+      return new_uri;
+    }
+
+    class ApplicationController {
       constructor() {
         this.socket = null;
-        this.video_player = null;
-        this.is_connected = false;
-        this.local_hash = '';
-        this.upstream_hash = '';
-        this.is_owner = true;
         this.retryTimer = null;
         this.heartbeatTimer = null;
+        this.videoPlayer = null;
+        this.isOwner = false;
+        this.isConnected = false;
       }
 
-      init(videoPlayer) {
-        this.attach(videoPlayer);
-
-        let loc = window.location, new_uri;
-        if (loc.protocol === "https:")
-          new_uri = "wss:";
-        else
-          new_uri = "ws:";
-        new_uri += "//" + loc.host + "/ws";
-        this.socket = new WebSocket(new_uri);
+      connectToRoom(room) {
+        this.room = room;
+        this.socket = new WebSocket(getWSAddr());
         this.socket.onopen = event => {
-          logSuccess('Connected to server');
-          this.onSocketOpen && this.onSocketOpen();
-          $("overlay").style.display = "none";
+          logSuccess('Websocket connected');
+          this.socket.send(`r:j:${room}`);
           this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
         };
 
         this.socket.onmessage = event => {
-          if (event.data === "hb") {
-          } else if (event.data === "l:s") {
-            logSuccess('Logged on');
-          } else if (event.data === "r:o") {
-            this.is_connected = true;
-            this.video_player.controls = true;
-            this.is_owner = true;
-            logSuccess('You are the owner');
-
-            $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
-                <strong><u>How to distribute the video to others?</u></strong> \
-                Use <a href="https://dropbox.com" target="_blank">Dropbox</a>, \
-                <a href="https://drive.google.com" target="_blank">Google Drive</a>, etc.';
-            helpController.showOwnerHelp();
-          } else if (event.data === "r:s") {
-            this.is_connected = true;
-            this.video_player.controls = false;
-            this.is_owner = false;
-            logSuccess('Joined');
-
-            $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
-                <strong><u>Where is the video?</u></strong> \
-                Ask the owner of this room.';
-            helpController.showMemberHelp();
+          if (event.data.text) {
+            event.data.text().then(msg => this.onMsgRecv(msg));
           } else {
-            const handleCmd = cmd => {
-              if (!this.video_player)
-                return;
-
-              let tokens = cmd.split(':');
-              if (tokens[0] == 'play') {
-                this.video_player.currentTime = parseFloat(tokens[1]);
-                this.video_player.play();
-              } else if (tokens[0] == 'pause') {
-                this.video_player.pause();
-                this.video_player.currentTime = parseFloat(tokens[1]);
-              } else if (tokens[0] == 'seek') {
-                this.video_player.currentTime = parseFloat(tokens[1]);
-              } else if (tokens[0] == 'hash') {
-                this.updateUpstreamHash(tokens[1]);
-              } else if (tokens[0] == 'user_count') {
-                $('user-count-text').innerHTML = tokens[1];
-              } else {
-                console.log(tokens[0]);
-              }
-            }
-
-            if (event.data.text) {
-              event.data.text().then(handleCmd);
-            } else {
-              handleCmd(event.data);
-            }
+            this.onMsgRecv(event.data);
           }
-        };
+        }
 
         this.socket.onerror = event => {
           console.log(event);
+          this.isConnected = false;
           $("overlay").style.display = "block";
           logError('Error!!!');
 
           clearTimeout(this.retryTimer);
           clearInterval(this.heartbeatTimer);
-          this.retryTimer = setTimeout(() => this.init(this.video_player), 5000);
+          this.retryTimer = setTimeout(() => this.reconnect(), 5000);
         };
 
         this.socket.onclose = event => {
           console.log(event);
+          this.isConnected = false;
           $("overlay").style.display = "block";
           logError('Connection closed');
 
           clearTimeout(this.retryTimer);
           clearInterval(this.heartbeatTimer);
-          this.retryTimer = setTimeout(() => this.init(this.video_player), 5000);
+          this.retryTimer = setTimeout(() => this.reconnect(), 5000);
         };
       }
 
-      connect(room_name) {
-        this.socket.send(`r:j:${room_name}`);
+      reconnect() {
+        connectToRoom(this.room);
       }
 
-      attach(video_player) {
-        this.video_player = video_player;
+      onBecomeOwner() {
+        logSuccess('You are the owner');
+        this.isOwner = true;
+        helpController.showOwnerHelp();
 
-        this.video_player.onpause = e => {
-          if (this.video_player.readyState === 4) {
-            if (this.is_owner) {
-              this.socket.send(`c:b:pause:${e.target.currentTime}`);
+        let controlBar = this.videoPlayer.getChild('ControlBar');
+        controlBar.playToggle.enable();
+        controlBar.progressControl.enable();
+      }
+
+      onBecomeMember() {
+        logSuccess('Joined');
+        this.isOwner = false;
+        helpController.showMemberHelp();
+
+        let controlBar = this.videoPlayer.getChild('ControlBar');
+        controlBar.playToggle.disable();
+        controlBar.progressControl.disable();
+      }
+
+      onMsgRecv(msg) {
+        if (msg === "hb") {
+        } else if (msg === "l:s") {
+          logSuccess('Logged on');
+        } else if (msg === "r:o") {
+          this.isConnected = true;
+          this.onBecomeOwner();
+        } else if (msg === "r:s") {
+          this.isConnected = true;
+          this.onBecomeMember();
+        } else {
+          if (!this.videoPlayer)
+            return;
+
+          let tokens = msg.split(':');
+          if (tokens[0] == 'play') {
+            this.videoPlayer.currentTime(parseFloat(tokens[1]));
+            this.videoPlayer.play();
+          } else if (tokens[0] == 'pause') {
+            this.videoPlayer.pause();
+            this.videoPlayer.currentTime(parseFloat(tokens[1]));
+          } else if (tokens[0] == 'seek') {
+            this.videoPlayer.currentTime(parseFloat(tokens[1]));
+          } else if (tokens[0] == 'hash') {
+            this.updateUpstreamHash(tokens[1]);
+          } else if (tokens[0] == 'user_count') {
+            $('user-count-text').innerHTML = tokens[1];
+          } else {
+            console.log(tokens[0]);
+          }
+        }
+      }
+
+      onNewURL(url, type) {
+        this.videoPlayer.src({src: url, type: type});
+      }
+
+      attachVideoPlayer(videoPlayer) {
+        this.videoPlayer = videoPlayer;
+        videoPlayer.on("pause", e => {
+          if (videoPlayer.readyState() === 4 && !videoPlayer.seeking()) {
+            if (this.isOwner) {
+              this.socket.send(`c:b:pause:${videoPlayer.currentTime()}`);
             }
-            log(`Pause @ ${toHHMMSS(e.target.currentTime)}`);
+            log(`Pause @ ${toHHMMSS(videoPlayer.currentTime())}`);
           }
-        }
+        });
 
-        this.video_player.onplay = e => {
-          if (this.is_owner) {
-            this.socket.send(`c:b:play:${e.target.currentTime}`);
+        videoPlayer.on("play", e => {
+          if (this.isOwner) {
+            this.socket.send(`c:b:play:${videoPlayer.currentTime()}`);
           }
-          log(`Play @ ${toHHMMSS(e.target.currentTime)}`);
-        }
+          log(`Play @ ${toHHMMSS(videoPlayer.currentTime())}`);
+        });
 
-        this.video_player.onseeked = e => {
-          if (this.is_owner) {
-            this.socket.send(`c:b:seek:${e.target.currentTime}`);
+        videoPlayer.on("seeked", e => {
+          /*
+          if (this.isOwner) {
+            this.socket.send(`c:b:seek:${videoPlayer.currentTime()}`);
           }
-          log(`Seek to ${toHHMMSS(e.target.currentTime)}`);
-        }
-      }
-
-      requestStatus() {
-        this.socket.send("c:rs");
+          log(`Seek to ${toHHMMSS(videoPlayer.currentTime())}`);*/
+        });
       }
 
       updateLocalHash(md5) {
-        this.local_hash = md5;
+        this.localHash = md5;
         this.socket.send(`c:h:hash:${md5}`);
 
         this.compareHash();
       }
 
       updateUpstreamHash(md5) {
-        this.upstream_hash = md5;
+        this.upstreamHash = md5;
 
         this.compareHash();
       }
@@ -369,6 +390,10 @@
         } else {
           logError("Video does not match with owner");
         }
+      }
+
+      requestStatus() {
+        this.socket.send("c:rs");
       }
     }
   </script>
@@ -386,11 +411,27 @@
       setTimeout(function(){ x.className = x.className.replace("show", ""); }, 2500);
     }
 
-    let videoPlayer = $("video-player");
+    let videoPlayer = videojs('video-player', {
+      controls: true,
+      autoplay: false,
+      preload: 'auto',
+      fluid: true,
+      children: {
+        controlBar: {
+          playToggle: true,
+          currentTimeDisplay: true,
+          timeDivider: true,
+          durationDisplay: true,
+          progressControl: true,
+          remainingTimeDisplay: true,
+        }
+      }
+    });
 
-    let controller = new PlayerController;
-    controller.onSocketOpen = () => controller.connect(room);
-    controller.init(videoPlayer);
+    let controller = new ApplicationController;
+
+    controller.connectToRoom(room);
+    controller.attachVideoPlayer(videoPlayer);
 
     $("video-input").onchange = evt => {
       let file = evt.target.files[0];
@@ -402,7 +443,7 @@
       } else {
         helpController.hide();
         calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
-        videoPlayer.src = URL.createObjectURL(file);
+        controller.onNewURL(URL.createObjectURL(file), file.type);
         controller.requestStatus();
       }
     }
