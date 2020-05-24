@@ -54,7 +54,7 @@
                 <pre>$ ffmpeg -vcodec copy -acodec aac -ac 2 -ab 128k -i &lt;input_file&gt; &lt;output_file&gt;</pre>
               </p>
               <strong><u>For Windows:</u></strong>
-              <p>TODO</p>
+              <p>Use this <a href="/static/SybimVideoConverter.exe">small utility</a> to convert your video file.</p>
             </div>
           </div>
         </div>
@@ -116,6 +116,22 @@
   <script src="/static/third_party/video.js"></script>
   <script src="/static/base.js"></script>
   <script>
+    let sheet = (function() {
+      // Create the <style> tag
+      var style = document.createElement("style");
+
+      // Add a media (and/or media query) here if you'd like!
+      // style.setAttribute("media", "screen")
+      // style.setAttribute("media", "only screen and (max-width : 1024px)")
+
+      // WebKit hack :(
+      style.appendChild(document.createTextNode(""));
+
+      // Add the <style> element to the page
+      document.head.appendChild(style);
+
+      return style.sheet;
+    })();
 
     function calculateMD5Hash(file, onFinish) {
 			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
@@ -306,6 +322,11 @@
         let controlBar = this.videoPlayer.getChild('ControlBar');
         controlBar.playToggle.enable();
         controlBar.progressControl.enable();
+
+        if (this.clickRule)
+          sheet.deleteRule(this.clickRule);
+
+        this.clickRule = null;
       }
 
       onBecomeMember() {
@@ -317,6 +338,11 @@
         let controlBar = this.videoPlayer.getChild('ControlBar');
         controlBar.playToggle.disable();
         controlBar.progressControl.disable();
+
+        if (this.clickRule)
+          sheet.deleteRule(this.clickRule);
+        this.clickRule = sheet.insertRule(
+            ".video-js.vjs-has-started .vjs-tech { pointer-events: none; }");
       }
 
       onMsgRecv(msg) {
