@@ -61,7 +61,6 @@
       </div>
 
       <video-js id="video-player" class="vjs-default-skin vjs-big-play-centered">
-        <track id="subtitle" kind="subtitles"/>
       </video-js>
     </div>
 
@@ -431,6 +430,7 @@
       preload: 'auto',
       /*fluid: true,*/
       children: {
+        textTrackDisplay: true,
         controlBar: {
           playToggle: true,
           currentTimeDisplay: true,
@@ -438,6 +438,7 @@
           durationDisplay: true,
           progressControl: true,
           remainingTimeDisplay: true,
+          subtitlesButton: true,
         }
       }
     });
@@ -470,10 +471,23 @@
       vttConverter
           .getURL()
           .then(url => {
-            $("subtitle").src = url;
-            videoPlayer.textTracks[0].mode = 'showing';
+            videoPlayer.addRemoteTextTrack({
+              kind: 'captions',
+              src: url,
+              language: 'n/a',
+              label: 'default',
+            }, false);
+
+            let tracks = videoPlayer.textTracks();
+            for (let i = 0; i < tracks.length; i += 1) {
+              tracks[i].mode = 'disabled';
+            }
+            tracks[tracks.length - 1].mode = 'showing';
+
+            toast('New subtitle loaded');
           })
           .catch(err => {
+            toast('Failed to load subtitle file');
             console.log('Error: ' + err)
           });
     }
