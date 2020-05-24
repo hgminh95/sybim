@@ -21,7 +21,7 @@
       <a id="join-link" href="#"><strong>Join</strong></a> a room
       <input id="room-input" pattern="[a-zA-Z0-9]+" class="text"/>
     </p>
-    <p>Or <a id="room-link" href=""><strong>Create</strong></a> a new one.</p>
+    <p>Or <a id="room-link" href="#"><strong>Create</strong></a> a new one.</p>
 
     <div class="footer">
       <span style="float: left; margin-left: 1rem">&copy; 2020 hgminh. All right reserved.</span>
@@ -46,7 +46,11 @@
        return result;
     }
 
-    $("room-link").href = `/r/${generateRoomId(7)}`;
+    $("room-link").onclick = e => {
+      e.preventDefault();
+      window.location.href = `/r/${generateRoomId(7)}`;
+    };
+
     $("join-link").onclick = e => {
       e.preventDefault();
       let room = $("room-input").value;
