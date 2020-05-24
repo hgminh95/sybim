@@ -256,6 +256,8 @@
         this.isOwner = false;
         this.isConnected = false;
         this.room = '';
+        this.upstreamHash = '';
+        this.localHash = '';
       }
 
       connectToRoom(room) {
@@ -422,9 +424,9 @@
       }
 
       compareHash() {
-        if (this.upstream_hash === "" || this.local_hash === "")
+        if (this.upstreamHash === "" || this.localHash === "")
           return;
-        if (this.upstream_hash === this.local_hash) {
+        if (this.upstreamHash === this.localHash) {
           log("Video file is good");
           toast("Your video file matches with owner's")
         } else {
