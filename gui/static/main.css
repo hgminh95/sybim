@@ -206,3 +206,16 @@ a, a:visited {
   to {bottom: 0; opacity: 0;}
 }
 
+/* Disable play/pause when click into video element */
+
+.video-js.vjs-playing .vjs-tech {
+  pointer-events: none;
+}
+
+.video-js.vjs-has-started .vjs-tech {
+  pointer-events: none;
+}
+
+.video-js .vjs-tech {
+  pointer-events: none;
+}

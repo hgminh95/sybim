@@ -116,23 +116,6 @@
   <script src="/static/third_party/video.js"></script>
   <script src="/static/base.js"></script>
   <script>
-    let sheet = (function() {
-      // Create the <style> tag
-      var style = document.createElement("style");
-
-      // Add a media (and/or media query) here if you'd like!
-      // style.setAttribute("media", "screen")
-      // style.setAttribute("media", "only screen and (max-width : 1024px)")
-
-      // WebKit hack :(
-      style.appendChild(document.createTextNode(""));
-
-      // Add the <style> element to the page
-      document.head.appendChild(style);
-
-      return style.sheet;
-    })();
-
     function calculateMD5Hash(file, onFinish) {
 			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
           chunkSize = 2097152, // read in chunks of 2MB
@@ -289,7 +272,6 @@
         }
 
         this.socket.onerror = event => {
-          console.log(event);
           this.isConnected = false;
           $("reconnect-overlay").style.display = "block";
           logError('Error!!!');
@@ -300,7 +282,6 @@
         };
 
         this.socket.onclose = event => {
-          console.log(event);
           this.isConnected = false;
           $("reconnect-overlay").style.display = "block";
           logError('Connection closed');
@@ -324,11 +305,6 @@
         let controlBar = this.videoPlayer.getChild('ControlBar');
         controlBar.playToggle.enable();
         controlBar.progressControl.enable();
-
-        if (this.clickRule)
-          sheet.deleteRule(this.clickRule);
-
-        this.clickRule = null;
       }
 
       onBecomeMember() {
@@ -340,11 +316,6 @@
         let controlBar = this.videoPlayer.getChild('ControlBar');
         controlBar.playToggle.disable();
         controlBar.progressControl.disable();
-
-        if (this.clickRule)
-          sheet.deleteRule(this.clickRule);
-        this.clickRule = sheet.insertRule(
-            ".video-js.vjs-has-started .vjs-tech { pointer-events: none; }");
       }
 
       onMsgRecv(msg) {
@@ -365,8 +336,8 @@
             this.videoPlayer.currentTime(parseFloat(tokens[1]));
             this.videoPlayer.play();
           } else if (tokens[0] == 'pause') {
-            this.videoPlayer.pause();
             this.videoPlayer.currentTime(parseFloat(tokens[1]));
+            this.videoPlayer.pause();
           } else if (tokens[0] == 'seek') {
             this.videoPlayer.currentTime(parseFloat(tokens[1]));
           } else if (tokens[0] == 'hash') {
@@ -381,12 +352,14 @@
 
       onNewURL(url, type) {
         this.videoPlayer.src({src: url, type: type});
+        this.videoPlayer.pause();
+        this.requestStatus();
       }
 
       attachVideoPlayer(videoPlayer) {
         this.videoPlayer = videoPlayer;
         videoPlayer.on("pause", e => {
-          if (videoPlayer.readyState() === 4 && !videoPlayer.seeking()) {
+          if (!videoPlayer.seeking()) {
             if (this.isOwner) {
               this.socket.send(`c:b:pause:${videoPlayer.currentTime()}`);
             }
@@ -399,14 +372,6 @@
             this.socket.send(`c:b:play:${videoPlayer.currentTime()}`);
           }
           log(`Play @ ${toHHMMSS(videoPlayer.currentTime())}`);
-        });
-
-        videoPlayer.on("seeked", e => {
-          /*
-          if (this.isOwner) {
-            this.socket.send(`c:b:seek:${videoPlayer.currentTime()}`);
-          }
-          log(`Seek to ${toHHMMSS(videoPlayer.currentTime())}`);*/
         });
       }
 
@@ -427,7 +392,7 @@
         if (this.upstreamHash === "" || this.localHash === "")
           return;
         if (this.upstreamHash === this.localHash) {
-          log("Video file is good");
+          logSuccess("Video file is good");
           toast("Your video file matches with owner's")
         } else {
           logError("Video does not match with owner");
@@ -436,6 +401,7 @@
       }
 
       requestStatus() {
+        log('Request current state');
         this.socket.send("c:rs");
       }
     }
@@ -456,7 +422,6 @@
       controls: true,
       autoplay: false,
       preload: 'auto',
-      /*fluid: true,*/
       children: {
         textTrackDisplay: true,
         controlBar: {
@@ -489,7 +454,6 @@
         helpController.hide();
         calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
         controller.onNewURL(URL.createObjectURL(file), file.type);
-        controller.requestStatus();
       }
     }
 
@@ -528,6 +492,11 @@
     $("sidebar-open-btn").onclick = evt => {
       $("sidebar").style.display = "flex";
       $("sidebar-open-btn").style.display = "none"; 
+    };
+
+    /* Workaround for stupid videojs mouse-up event */
+    $("video-player").onmouseup = e => {
+      e.stopPropagation();
     };
   </script>
 
