@@ -154,6 +154,16 @@ class SyncHandler : public WebSocket::Handler {
       LOG(ERROR) << "Unrecognized request sent from client: " << data;
       connection->close();
     }
+
+    auto now = std::chrono::steady_clock::now();
+    double report_duration = std::chrono::duration_cast<std::chrono::minutes>(
+        now - last_reported_time_).count();
+
+    if (report_duration > 5) {
+      CleanEmptyGroup();
+      ReportStats();
+      last_reported_time_ = std::chrono::steady_clock::now();
+    }
   }
 
   void onDisconnect(WebSocket *connection) override {
@@ -171,6 +181,8 @@ class SyncHandler : public WebSocket::Handler {
   Server *server_;
   std::unordered_map<WebSocket*, PlayerGroup*> sockets_map_;
   std::unordered_map<std::string, PlayerGroup*> groups_map_;
+
+  std::chrono::steady_clock::time_point last_reported_time_;
 
   void JoinRoom(PlayerGroup *group, WebSocket *socket, std::string_view group_name) {
     if (group)
@@ -227,6 +239,24 @@ class SyncHandler : public WebSocket::Handler {
     }
 
     group->SendCurrentStatus(socket);
+  }
+
+  void CleanEmptyGroup() {
+    int cnt{0};
+    for (auto it = groups_map_.begin(); it != groups_map_.end();) {
+      if (it->second->size() == 0) {  // no users in the group
+        it = groups_map_.erase(it);
+        ++cnt;
+      } else {
+        ++it;
+      }
+    }
+
+    LOG(INFO) << cnt << " empty group(s) removed";
+  }
+
+  void ReportStats() {
+    LOG(INFO) << "Stats - users: " << sockets_map_.size() << "; room: " << groups_map_.size();
   }
 };
 
