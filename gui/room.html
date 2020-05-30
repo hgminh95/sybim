@@ -116,6 +116,104 @@
   <script src="/static/third_party/video.js"></script>
   <script src="/static/base.js"></script>
   <script>
+    /* Taken from video.js source code */
+
+    /**
+     * Returns whether an object is `Promise`-like (i.e. has a `then` method).
+     *
+     * @param  {Object}  value
+     *         An object that may or may not be `Promise`-like.
+     *
+     * @return {boolean}
+     *         Whether or not the object is `Promise`-like.
+     */
+    function isPromise(value) {
+      return value !== undefined && value !== null && typeof value.then === 'function';
+    }
+    
+    /**
+     * Silence a Promise-like object.
+     *
+     * This is useful for avoiding non-harmful, but potentially confusing "uncaught
+     * play promise" rejection error messages.
+     *
+     * @param  {Object} value
+     *         An object that may or may not be `Promise`-like.
+     */
+    function silencePromise(value) {
+      if (isPromise(value)) {
+        value.then(null, (e) => {});
+      }
+    }
+
+    function isSingleLeftClick(event) {
+      // Note: if you create something draggable, be sure to
+      // call it on both `mousedown` and `mousemove` event,
+      // otherwise `mousedown` should be enough for a button
+    
+      if (event.button === undefined && event.buttons === undefined) {
+        // Why do we need `buttons` ?
+        // Because, middle mouse sometimes have this:
+        // e.button === 0 and e.buttons === 4
+        // Furthermore, we want to prevent combination click, something like
+        // HOLD middlemouse then left click, that would be
+        // e.button === 0, e.buttons === 5
+        // just `button` is not gonna work
+    
+        // Alright, then what this block does ?
+        // this is for chrome `simulate mobile devices`
+        // I want to support this as well
+    
+        return true;
+      }
+    
+      if (event.button === 0 && event.buttons === undefined) {
+        // Touch screen, sometimes on some specific device, `buttons`
+        // doesn't have anything (safari on ios, blackberry...)
+    
+        return true;
+      }
+    
+      // `mouseup` event on a single left click has
+      // `button` and `buttons` equal to 0
+      if (event.type === 'mouseup' && event.button === 0 &&
+          event.buttons === 0) {
+        return true;
+      }
+    
+      if (event.button !== 0 || event.buttons !== 1) {
+        // This is the reason we have those if else block above
+        // if any special case we can catch and let it slide
+        // we do it above, when get to here, this definitely
+        // is-not-left-click
+    
+        return false;
+      }
+    
+      return true;
+    } 
+
+    /* Silly hack to disable the click to play event */
+    let PlayerComponent = videojs.getComponent('Player');
+    PlayerComponent.prototype.handleTechClick_ = function(event) {
+      if (!isSingleLeftClick(event)) {
+        return;
+      }
+
+      // When controls are disabled a click should not toggle playback because
+      // the click is considered a control
+      if (!this.controls_ || !this.isOwner) {
+        return;
+      }
+
+      if (this.paused()) {
+        silencePromise(this.play());
+      } else {
+        this.pause();
+      }
+    };
+  </script>
+  <script>
     function calculateMD5Hash(file, onFinish) {
 			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
           chunkSize = 2097152, // read in chunks of 2MB
@@ -187,11 +285,13 @@
         $('help-overlay').style.display = 'none';
       },
 
-      showOwnerHelp() {
+      showOwnerHelp(overlay = true) {
         $('owner-help-text').style.display = 'block';
         $('member-help-text').style.display = 'none';
         $('invalid-video-help-text').style.display = 'none';
-        $('help-overlay').style.display = 'block';
+
+        if (overlay)
+          $('help-overlay').style.display = 'block';
 
         $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
             <strong><u>How to distribute the video to others?</u></strong> \
@@ -199,11 +299,13 @@
             <a href="https://drive.google.com" target="_blank">Google Drive</a>, etc.';
       },
 
-      showMemberHelp() {
+      showMemberHelp(overlay = true) {
         $('owner-help-text').style.display = 'none';
         $('member-help-text').style.display = 'block';
         $('invalid-video-help-text').style.display = 'none';
-        $('help-overlay').style.display = 'block';
+
+        if (overlay)
+          $('help-overlay').style.display = 'block';
 
         $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
             <strong><u>Where is the video?</u></strong> \
@@ -241,6 +343,7 @@
         this.room = '';
         this.upstreamHash = '';
         this.localHash = '';
+        this.hasVideo = false;
       }
 
       connectToRoom(room) {
@@ -300,22 +403,32 @@
         logSuccess('You are the owner');
         toast("You are the owner");
         this.isOwner = true;
-        helpController.showOwnerHelp();
+        this.videoPlayer.isOwner = true;
+        helpController.showOwnerHelp(!this.hasVideo);
 
         let controlBar = this.videoPlayer.getChild('ControlBar');
         controlBar.playToggle.enable();
         controlBar.progressControl.enable();
+
+        let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
+        bigPlayButton.enable();
+        bigPlayButton.show();
       }
 
       onBecomeMember() {
         logSuccess('Joined');
         toast("Joined");
         this.isOwner = false;
-        helpController.showMemberHelp();
+        this.videoPlayer.isOwner = false;
+        helpController.showMemberHelp(!this.hasVideo);
 
         let controlBar = this.videoPlayer.getChild('ControlBar');
         controlBar.playToggle.disable();
         controlBar.progressControl.disable();
+
+        let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
+        bigPlayButton.disable();
+        bigPlayButton.hide();
       }
 
       onMsgRecv(msg) {
@@ -333,9 +446,11 @@
 
           let tokens = msg.split(':');
           if (tokens[0] == 'play') {
+            log(`Upstream: Play @ ${toHHMMSS(parseFloat(tokens[1]))}`);
             this.videoPlayer.currentTime(parseFloat(tokens[1]));
             this.videoPlayer.play();
           } else if (tokens[0] == 'pause') {
+            log(`Upstream: Pause @ ${toHHMMSS(parseFloat(tokens[1]))}`);
             this.videoPlayer.currentTime(parseFloat(tokens[1]));
             this.videoPlayer.pause();
           } else if (tokens[0] == 'seek') {
@@ -351,9 +466,14 @@
       }
 
       onNewURL(url, type) {
+        this.hasVideo = true;
+
         this.videoPlayer.src({src: url, type: type});
-        this.videoPlayer.pause();
-        this.requestStatus();
+        log(`Changing source to ${url}`);
+        this.videoPlayer.ready(() => {
+          log('Video player is ready');
+          this.requestStatus();
+        });
       }
 
       attachVideoPlayer(videoPlayer) {
@@ -423,6 +543,7 @@
       autoplay: false,
       preload: 'auto',
       children: {
+        bigPlayButton: false,
         textTrackDisplay: true,
         controlBar: {
           playToggle: true,
