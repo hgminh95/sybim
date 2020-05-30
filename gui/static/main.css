@@ -108,6 +108,7 @@ a, a:visited {
 }
 
 #logger {
+  overflow-x: hidden;
   overflow-y: scroll;
   flex-grow: 1;
   min-height: 100px;

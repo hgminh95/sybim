@@ -105,7 +105,10 @@
       <p><strong><span class="icon">&#128161;</span> <u>Feel like talking?</u></strong> Use whatever chat apps you prefer.</p>
 
       <hr style="width: 100%"/>
-      <p><strong><span class="icon">&#129299;</span> Logs</strong></p>
+      <p>
+        <strong><span class="icon">&#129299;</span> Logs</strong>
+        <span id="clear-log-btn" class="icon" style="float:right; cursor:pointer;">&#x29B8;<span>
+      </p>
       <pre id="logger" style="margin-top: 0px"/>
     </div>
   </div>
@@ -214,7 +217,10 @@
     };
   </script>
   <script>
+    let hashCounter = 0;
     function calculateMD5Hash(file, onFinish) {
+      hashCounter += 1;
+      let thisHashCounter = hashCounter;
 			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
           chunkSize = 2097152, // read in chunks of 2MB
           chunks = Math.ceil(file.size / chunkSize),
@@ -224,9 +230,9 @@
             spark.append(e.target.result); // append array buffer
             currentChunk++;
             if (currentChunk < chunks)
-                loadNext();
-              else
-                onFinish(spark.end());
+              loadNext();
+            else if (thisHashCounter === hashCounter) // ignore old runs
+              onFinish(spark.end());
 					},
           frOnerror = function () {};
       function loadNext() {
@@ -266,6 +272,10 @@
     function logSuccess(message) {
       logger.innerHTML += '<span class="success">' + toLogStr(message) + '</span><br/>';
       logger.scrollTop = logger.scrollHeight;
+    }
+
+    function clearLogs() {
+      logger.innerHTML = '';
     }
 
     function toHHMMSS(seconds) {
@@ -509,7 +519,7 @@
       }
 
       compareHash() {
-        if (this.upstreamHash === "" || this.localHash === "")
+        if (this.upstreamHash === "" || this.localHash === "" || this.isOwner)
           return;
         if (this.upstreamHash === this.localHash) {
           logSuccess("Video file is good");
@@ -613,6 +623,10 @@
     $("sidebar-open-btn").onclick = evt => {
       $("sidebar").style.display = "flex";
       $("sidebar-open-btn").style.display = "none"; 
+    };
+
+    $("clear-log-btn").onclick = evt => {
+      clearLogs();
     };
   </script>
 
