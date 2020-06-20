@@ -476,13 +476,19 @@
       }
 
       onNewURL(url, type) {
+        url += "#t=5";
         this.hasVideo = true;
 
         this.videoPlayer.src({src: url, type: type});
         log(`Changing source to ${url}`);
         this.videoPlayer.ready(() => {
           log('Video player is ready');
-          this.requestStatus();
+          if (this.isOwner) {
+            let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
+            bigPlayButton.show();
+          } else {
+            this.requestStatus();
+          }
         });
       }
 
