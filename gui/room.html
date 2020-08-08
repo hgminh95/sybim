@@ -23,6 +23,9 @@
 
   <div class="row">
     <div class="video-container">
+      <video-js id="video-player" class="vjs-default-skin vjs-big-play-centered">
+      </video-js>
+
       <div id="help-overlay">
         <div class="center-screen" style="color: white">
           <div id="owner-help-text" style="width: 40%; display: none">
@@ -60,8 +63,6 @@
         </div>
       </div>
 
-      <video-js id="video-player" class="vjs-default-skin vjs-big-play-centered">
-      </video-js>
     </div>
 
     <h2 id="sidebar-open-btn" class="icon"
@@ -293,16 +294,19 @@
   <script>
     var helpController = {
       hide() {
+        console.log("Hide help overlay");
         $('help-overlay').style.display = 'none';
       },
 
       showOwnerHelp(overlay = true) {
+        console.log("Show owner help");
+
         $('owner-help-text').style.display = 'block';
         $('member-help-text').style.display = 'none';
         $('invalid-video-help-text').style.display = 'none';
 
         if (overlay)
-          $('help-overlay').style.display = 'block';
+          $('help-overlay').style.display = 'inline-block';
 
         $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
             <strong><u>How to distribute the video to others?</u></strong> \
@@ -311,12 +315,14 @@
       },
 
       showMemberHelp(overlay = true) {
+        console.log("Show member help");
+
         $('owner-help-text').style.display = 'none';
         $('member-help-text').style.display = 'block';
         $('invalid-video-help-text').style.display = 'none';
 
         if (overlay)
-          $('help-overlay').style.display = 'block';
+          $('help-overlay').style.display = 'inline-block';
 
         $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
             <strong><u>Where is the video?</u></strong> \
@@ -324,10 +330,12 @@
       },
 
       showInvalidVideoTypeHelp() {
+        console.log("Show invalid video type help");
+
         $('owner-help-text').style.display = 'none';
         $('member-help-text').style.display = 'none';
         $('invalid-video-help-text').style.display = 'block';
-        $('help-overlay').style.display = 'block';
+        $('help-overlay').style.display = 'inline-block';
       }
     };
   </script>
@@ -415,7 +423,6 @@
         toast("You are the owner");
         this.isOwner = true;
         this.videoPlayer.isOwner = true;
-        console.log(this.videoPlayer);
         helpController.showOwnerHelp(!this.hasVideo);
 
         let controlBar = this.videoPlayer.getChild('ControlBar');

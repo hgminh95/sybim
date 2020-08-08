@@ -61,6 +61,7 @@ a, a:visited {
 
 .video-container {
   flex: 4;
+  display: grid;
 }
 
 #help-overlay {
@@ -69,14 +70,16 @@ a, a:visited {
   height: 100vh;
   top: 0;
   left: 0;
-  background-color: rgba(0,0,0,0.5);
+  background: linear-gradient(to right, #1f2c36, #969593);
   z-index: 2;
   padding: 0;
+  grid-area: 1 / 1;
 }
 
 #video-player {
   width: 100%;
   height: 100vh;
+  grid-area: 1 / 1;
 }
 
 .sidebar {
