@@ -541,11 +541,21 @@
           }
 
           if (e.keyCode === 39) { // Right Arrow
-            this.videoPlayer.currentTime(this.videoPlayer.currentTime() + 5);
+            let seekTime = this.videoPlayer.currentTime() + 5;
+            this.videoPlayer.currentTime(seekTime);
+            if (this.videoPlayer.paused())
+              this.socket.send(`c:b:pause:${seekTime}`);
+            else
+              this.socket.send(`c:b:play:${seekTime}`);
           }
 
           if (e.keyCode === 37) { // Left Arrow
-            this.videoPlayer.currentTime(this.videoPlayer.currentTime() - 5);
+            let seekTime = this.videoPlayer.currentTime() - 5;
+            this.videoPlayer.currentTime(seekTime);
+            if (this.videoPlayer.paused())
+              this.socket.send(`c:b:pause:${seekTime}`);
+            else
+              this.socket.send(`c:b:play:${seekTime}`);
           }
         });
       }
