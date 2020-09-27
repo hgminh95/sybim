@@ -381,6 +381,57 @@
       }
     };
   </script>
+
+  <script>
+    class HeartController {
+      constructor() {
+        this.duration = 5000;
+        this.speed = 0.5;
+        this.hearts = [];
+        this.before = Date.now();
+
+        this.eventLoop = this.eventLoop.bind(this);
+        setInterval(this.eventLoop, 10);
+      }
+
+      generateHeart(x, y, xBound, xStart, scale) {
+        var heart = document.createElement("DIV");
+        heart.setAttribute('class', 'heart');
+        document.body.appendChild(heart);
+        heart.time = this.duration + Math.random() * this.duration;
+        heart.x = x;
+        heart.y = y;
+        heart.bound = xBound;
+        heart.direction = xStart;
+        heart.style.left = heart.x + "px";
+        heart.style.top = heart.y + "px";
+        heart.scale = scale;
+        heart.style.transform = "scale(" + scale + "," + scale + ")";
+        this.hearts.push(heart);
+        return heart;
+      }
+
+      eventLoop() {
+        let current = Date.now();
+        let deltaTime = current - this.before;
+        this.before = current;
+        for (let i in this.hearts) {
+          let heart = this.hearts[i];
+          heart.time -= deltaTime;
+          if (heart.time > 0) {
+            heart.y -= this.speed;
+            heart.style.top = heart.y + "px";
+            heart.style.left = heart.x + heart.direction * heart.bound * Math.sin(heart.y * heart.scale / 10) / heart.y * 200 + "px";
+          } else {
+            heart.parentNode.removeChild(heart);
+            this.hearts.splice(i, 1);
+          }
+        }
+      }
+    }
+
+    let heartController = new HeartController();
+  </script>
   <script>
     function getWSAddr() {
       let loc = window.location, new_uri;
@@ -652,6 +703,8 @@
         chatLine.appendChild(contentSpan);
 
         document.querySelector('.chat-line:last-of-type').after(chatLine);
+
+        this.sendLove(msg);
       }
 
       onChatReceived(msg) {
@@ -674,6 +727,20 @@
         this.hideChatPaneAction = setTimeout(() => {
           chatPane.style.removeProperty('opacity');
         }, 5000);
+
+        this.sendLove(msg);
+      }
+
+      sendLove(msg) {
+        let love_counts = (msg.match(/love/g) || []).length;
+        for (let i = 0; i < love_counts; ++i) {
+          let start = 1 - Math.round(Math.random()) * 2;
+          let scale = Math.random() * Math.random() * 0.8 + 0.2;
+          let bound = 50 + Math.random() * 100;
+          let x = Math.random() * document.body.clientWidth;
+          let y = document.body.clientHeight - 50 - Math.random() * 50;
+          heartController.generateHeart(x, y, bound, start, scale);
+        }
       }
     }
   </script>
