@@ -62,6 +62,7 @@ a, a:visited {
 .video-container {
   flex: 4;
   display: grid;
+  position: relative;
 }
 
 #help-overlay {
@@ -85,7 +86,70 @@ a, a:visited {
   grid-area: 1 / 1;
 }
 
+#chat-pane {
+  overflow: hidden;
+  z-index: 99;
+
+  position: absolute;
+  bottom: 50px;
+  right: 0;
+  width: 30%;
+  min-width: 200px;
+  max-width: 450px;
+  height: 50%;
+  max-height: 400px;
+  opacity: 0;
+  transition: opacity 5s ease-out;
+
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+}
+
+#chat-pane:hover {
+  opacity: 1;
+  transition: opacity 2s ease-in;
+}
+
+#chat-input {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+#chat-pane p {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+#chat-pane p .username {
+  color: black;
+  background-color: lightyellow;
+  width: fit-content;
+}
+
+#chat-pane p .username.self {
+  background-color: bisque;
+}
+
+#chat-pane p .username.sybim {
+  background-color: mediumpurple;
+}
+
+#chat-pane p .content {
+  color: black;
+  background-color: white;
+  width: fit-content;
+  margin-left: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+#chat-wrapper {
+  position: absolute;
+  bottom: 0px;
+  width: 95%;
+}
+
 .sidebar {
+  background-color: floralwhite;
   flex: 1;
   margin: 0;
   z-index: 2;
@@ -109,6 +173,14 @@ a, a:visited {
 }
 
 /* Main Page */
+
+.buy_coffee {
+  opacity: 0.3;
+}
+
+.buy_coffee:hover {
+  opacity: 1;
+}
 
 .buy_coffee:before {
   content: "\1F644";
@@ -198,3 +270,11 @@ a, a:visited {
   from {bottom: 30px; opacity: 1;}
   to {bottom: 0; opacity: 0;}
 }
+
+*:fullscreen
+*:-ms-fullscreen,
+*:-webkit-full-screen,
+*:-moz-full-screen {
+  overflow: auto !important;
+}
+

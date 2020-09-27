@@ -46,8 +46,11 @@ class PlayerGroup {
     BroadcastUserCount();
   }
 
-  void Broadcast(std::string_view data) {
+  void Broadcast(WebSocket *source, std::string_view data) {
     auto tokens = str::split(data, ":");
+    if (tokens.empty())
+      return;
+
     if (tokens.size() >= 2) {
       auto timestamp = str::to_double(tokens[1]);
       if (timestamp.has_value()) {
@@ -65,8 +68,12 @@ class PlayerGroup {
         }
       }
     }
+
+    if (source == nullptr)
+      source = owner_;
+
     for (auto socket : sockets_) {
-      if (socket != owner_)
+      if (socket != source)
         socket->send(reinterpret_cast<const uint8_t*>(data.data()), data.size());
     }
   }
@@ -198,7 +205,7 @@ class SyncHandler : public WebSocket::Handler {
       player_group->AddSocket(socket);
       sockets_map_[socket] = player_group;
       if (!player_group->md5_hash().empty())
-        player_group->Broadcast("hash:" + player_group->md5_hash());
+        player_group->Broadcast(nullptr, "hash:" + player_group->md5_hash());
     } else {
       player_group = new PlayerGroup();
       groups_map_[group_name_str] = player_group;
@@ -215,8 +222,8 @@ class SyncHandler : public WebSocket::Handler {
       return;
     }
 
-    if (socket == group->owner()) {
-      group->Broadcast(cmd);
+    if (socket == group->owner() || cmd.rfind("chat:", 0) == 0) {
+      group->Broadcast(socket, cmd);
     }
   }
 
@@ -227,7 +234,7 @@ class SyncHandler : public WebSocket::Handler {
     }
 
     if (socket == group->owner() && str::has_prefix(cmd, "hash:")) {
-      group->Broadcast(cmd);
+      group->Broadcast(socket, cmd);
       group->set_md5_hash(std::string{cmd.substr(5)});
     }
   }
