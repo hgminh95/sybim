@@ -394,9 +394,9 @@
         setInterval(this.eventLoop, 10);
       }
 
-      generateHeart(x, y, xBound, xStart, scale) {
+      generateHeart(type, x, y, xBound, xStart, scale) {
         var heart = document.createElement("DIV");
-        heart.setAttribute('class', 'heart');
+        heart.setAttribute('class', type);
         document.body.appendChild(heart);
         heart.time = this.duration + Math.random() * this.duration;
         heart.x = x;
@@ -739,7 +739,17 @@
           let bound = 50 + Math.random() * 100;
           let x = Math.random() * document.body.clientWidth;
           let y = document.body.clientHeight - 50 - Math.random() * 50;
-          heartController.generateHeart(x, y, bound, start, scale);
+          heartController.generateHeart('heart', x, y, bound, start, scale);
+        }
+
+        let eww_counts = (msg.match(/eww/g) || []).length;
+        for (let i = 0; i < eww_counts; ++i) {
+          let start = 1 - Math.round(Math.random()) * 2;
+          let scale = Math.random() * Math.random() * 0.8 + 2;
+          let bound = 30 + Math.random() * 50;
+          let x = Math.random() * document.body.clientWidth;
+          let y = document.body.clientHeight - 50 - Math.random() * 50;
+          heartController.generateHeart('eww', x, y, bound, start, scale);
         }
       }
     }

@@ -308,3 +308,13 @@ a, a:visited {
   left : 10.5px;
   transform : rotate(135deg);
 }
+
+.eww {
+  z-index: 999;
+  animation: heartfade 10s linear;
+  position: absolute;
+}
+
+.eww:before {
+  content: "🤢";
+}
