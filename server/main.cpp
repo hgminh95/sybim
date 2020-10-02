@@ -145,6 +145,11 @@ class SyncHandler : public WebSocket::Handler {
       player_group = it->second;
 
     std::string_view command{data};
+    if (command.length() > 256) {
+      // Message is too long, probably something malicious
+      connection->close();
+      return;
+    }
 
     if (command == "hb") {
       connection->send("hb");
