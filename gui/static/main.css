@@ -101,7 +101,7 @@ a, a:visited {
   opacity: 0;
   transition: opacity 5s ease-out;
 
-  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0));
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0.2));
 }
 
 #chat-pane:hover {
@@ -121,16 +121,7 @@ a, a:visited {
 
 #chat-pane p .username {
   color: black;
-  background-color: lightyellow;
   width: fit-content;
-}
-
-#chat-pane p .username.self {
-  background-color: bisque;
-}
-
-#chat-pane p .username.sybim {
-  background-color: mediumpurple;
 }
 
 #chat-pane p .content {
@@ -236,7 +227,7 @@ a, a:visited {
   border-radius: 2px; /* Rounded borders */
   padding: 8px 20px; /* Padding */
   position: fixed; /* Sit on top of the screen */
-  z-index: 1; /* Add a z-index if needed */
+  z-index: 1000; /* Add a z-index if needed */
   left: 50%; /* Center the snackbar */
   bottom: 30px; /* 30px from the bottom */
 }

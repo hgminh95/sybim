@@ -58,11 +58,8 @@
 
       <div id="chat-pane">
         <div id="chat-wrapper">
-          <p class="chat-line">
-            <span class="username sybim"><strong>sybim:</strong></span>
-            <span class="content"><strong>Welcome! Have Fun (:</strong></span>
-          </p>
-          <input type="text" id="chat-input" placeholder="Press Enter to send">
+          <p class="chat-line"></p>
+          <input type="text" id="chat-input" placeholder="Press Enter to send" maxlength="64">
         </div>
         <p>
       </div>
@@ -117,11 +114,6 @@
       <p><strong><span class="icon">&#128161;</span> <u>Feel like talking?</u></strong> Use whatever chat apps you prefer.</p>
 
       <hr style="width: 100%"/>
-      <p>
-        <strong><span class="icon">&#129299;</span> Logs</strong>
-        <span id="clear-log-btn" class="icon" style="float:right; cursor:pointer;">&#x29B8;<span>
-      </p>
-      <pre id="logger" style="margin-top: 0px"/>
     </div>
   </div>
   <div id="toast"></div>
@@ -129,34 +121,8 @@
   <script src="/static/third_party/srt_webvtt.js"></script>
   <script src="/static/third_party/spark-md5.min.js"></script>
   <script src="/static/third_party/video.js"></script>
-  <script src="//cdn.sc.gl/videojs-hotkeys/0.2/videojs.hotkeys.min.js"></script>
+  <!--<script src="//cdn.sc.gl/videojs-hotkeys/0.2/videojs.hotkeys.min.js"></script>-->
   <script src="/static/base.js"></script>
-  <script>
-		function toggleFullScreen(elem) {
-		  if ((document.fullScreenElement !== undefined && document.fullScreenElement === null) || (document.msFullscreenElement !== undefined && document.msFullscreenElement === null) || (document.mozFullScreen !== undefined && !document.mozFullScreen) || (document.webkitIsFullScreen !== undefined && !document.webkitIsFullScreen)) {
-		    if (elem.requestFullScreen) {
-		      elem.requestFullScreen();
-		    } else if (elem.mozRequestFullScreen) {
-		      elem.mozRequestFullScreen();
-		    } else if (elem.webkitRequestFullScreen) {
-		      elem.webkitRequestFullScreen(Element.ALLOW_KEYBOARD_INPUT);
-		    } else if (elem.msRequestFullscreen) {
-		      elem.msRequestFullscreen();
-		    }
-		  } else {
-		    if (document.cancelFullScreen) {
-		      document.cancelFullScreen();
-		    } else if (document.mozCancelFullScreen) {
-		      document.mozCancelFullScreen();
-		    } else if (document.webkitCancelFullScreen) {
-		      document.webkitCancelFullScreen();
-		    } else if (document.msExitFullscreen) {
-		      document.msExitFullscreen();
-		    }
-		  }
-		}
-	</script>
-
   <script>
     /* Taken from video.js source code */
 
@@ -292,36 +258,6 @@
     }
   </script>
   <script>
-    let logger = $("logger");
-    logger.innerHTML = '';
-
-    function toLogStr(message) {
-      if (typeof message === 'object') {
-        return JSON && JSON.stringify ? JSON.stringify(message) : message;
-      } else {
-        return message;
-      }
-    }
-
-    function log(message) {
-      logger.innerHTML += '<span>' + toLogStr(message) + '</span><br/>';
-      logger.scrollTop = logger.scrollHeight;
-    }
-
-    function logError(message) {
-      logger.innerHTML += '<span class="error">' + toLogStr(message) + '</span><br/>';
-      logger.scrollTop = logger.scrollHeight;
-    }
-
-    function logSuccess(message) {
-      logger.innerHTML += '<span class="success">' + toLogStr(message) + '</span><br/>';
-      logger.scrollTop = logger.scrollHeight;
-    }
-
-    function clearLogs() {
-      logger.innerHTML = '';
-    }
-
     function toHHMMSS(seconds) {
       let hh = Math.floor(seconds / (60 * 60));
       let mm = Math.floor((seconds / 60) % 60);
@@ -456,10 +392,10 @@
         this.upstreamHash = '';
         this.localHash = '';
         this.hasVideo = false;
+        this.userColors = {};
       }
 
       connectToRoom(room) {
-        log(`Connecting to room ${room}...`);
         if (this.room === '') { /* first time connect */
           setTimeout(() => {
             if (!this.isConnected) {
@@ -472,10 +408,10 @@
         this.socket = new WebSocket(getWSAddr());
         this.socket.onopen = event => {
           this.isConnected = true;
-          logSuccess('Websocket connected');
           $("reconnect-overlay").style.display = "none";
           this.socket.send(`r:j:${room}`);
           this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
+          this.insertNewChat('sybim', 'Welcome! Have Fun (:');
         };
 
         this.socket.onmessage = event => {
@@ -488,8 +424,6 @@
 
         this.socket.onerror = event => {
           this.isConnected = false;
-          $("reconnect-overlay").style.display = "block";
-          logError('Error!!!');
 
           clearTimeout(this.retryTimer);
           clearInterval(this.heartbeatTimer);
@@ -499,7 +433,6 @@
         this.socket.onclose = event => {
           this.isConnected = false;
           $("reconnect-overlay").style.display = "block";
-          logError('Connection closed');
 
           clearTimeout(this.retryTimer);
           clearInterval(this.heartbeatTimer);
@@ -512,7 +445,7 @@
       }
 
       onBecomeOwner() {
-        logSuccess('You are the owner');
+        this.insertNewChat('sybim', 'You are the owner');
         toast("You are the owner");
         this.isOwner = true;
         this.videoPlayer.isOwner = true;
@@ -528,7 +461,6 @@
       }
 
       onBecomeMember() {
-        logSuccess('Joined');
         toast("Joined");
         this.isOwner = false;
         this.videoPlayer.isOwner = false;
@@ -546,7 +478,6 @@
       onMsgRecv(msg) {
         if (msg === "hb") {
         } else if (msg === "l:s") {
-          logSuccess('Logged on');
         } else if (msg === "r:o") {
           this.isConnected = true;
           this.onBecomeOwner();
@@ -562,11 +493,9 @@
               return;
 
             if (tokens[0] == 'play') {
-              log(`Upstream: Play @ ${toHHMMSS(parseFloat(tokens[1]))}`);
               this.videoPlayer.currentTime(parseFloat(tokens[1]));
               this.videoPlayer.play();
             } else if (tokens[0] == 'pause') {
-              log(`Upstream: Pause @ ${toHHMMSS(parseFloat(tokens[1]))}`);
               this.videoPlayer.currentTime(parseFloat(tokens[1]));
               this.videoPlayer.pause();
             } else if (tokens[0] == 'seek') {
@@ -587,9 +516,7 @@
         this.hasVideo = true;
 
         this.videoPlayer.src({src: url, type: type});
-        log(`Changing source to ${url}`);
         this.videoPlayer.ready(() => {
-          log('Video player is ready');
           if (this.isOwner) {
             let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
             bigPlayButton.show();
@@ -608,7 +535,6 @@
             if (this.isOwner) {
               this.socket.send(`c:b:pause:${videoPlayer.currentTime()}`);
             }
-            log(`Pause @ ${toHHMMSS(videoPlayer.currentTime())}`);
           }
         });
 
@@ -616,7 +542,6 @@
           if (this.isOwner) {
             this.socket.send(`c:b:play:${videoPlayer.currentTime()}`);
           }
-          log(`Play @ ${toHHMMSS(videoPlayer.currentTime())}`);
         });
 
         videoPlayer.on("keydown", e => {
@@ -675,51 +600,26 @@
         if (this.upstreamHash === "" || this.localHash === "" || this.isOwner)
           return;
         if (this.upstreamHash === this.localHash) {
-          logSuccess("Video file is good");
-          toast("Your video file matches with owner's")
+          this.insertNewChat('sybim', 'Video matches with owners');
         } else {
-          logError("Video does not match with owner");
-          toast("Your video file does not match with owner's")
+          this.insertNewChat('sybim_error', 'Video does not match with owner');
         }
       }
 
       requestStatus() {
-        log('Request current state');
         this.socket.send("c:rs");
       }
 
       sendChat(msg) {
         this.socket.send(`c:b:chat:${msg}`);
 
-        let chatLine = document.createElement('p');
-        chatLine.className = 'chat-line';
-        let userSpan = document.createElement('span');
-        userSpan.className = 'username self';
-        userSpan.innerHTML = 'you:';
-        let contentSpan = document.createElement('span');
-        contentSpan.className = 'content';
-        contentSpan.innerHTML = msg;
-        chatLine.appendChild(userSpan)
-        chatLine.appendChild(contentSpan);
-
-        document.querySelector('.chat-line:last-of-type').after(chatLine);
+        this.insertNewChat('you', msg);
 
         this.sendLove(msg);
       }
 
       onChatReceived(msg) {
-        let chatLine = document.createElement('p');
-        chatLine.className = 'chat-line';
-        let userSpan = document.createElement('span');
-        userSpan.className = 'username';
-        userSpan.innerHTML = 'other:';
-        let contentSpan = document.createElement('span');
-        contentSpan.className = 'content';
-        contentSpan.innerHTML = msg;
-        chatLine.appendChild(userSpan)
-        chatLine.appendChild(contentSpan);
-
-        document.querySelector('.chat-line:last-of-type').after(chatLine);
+        this.insertNewChat('other', msg);
 
         let chatPane = document.getElementById('chat-pane');
         chatPane.style.opacity = 1;
@@ -729,6 +629,40 @@
         }, 5000);
 
         this.sendLove(msg);
+      }
+
+      insertNewChat(user, msg) {
+        let chatLine = document.createElement('p');
+        chatLine.className = 'chat-line';
+
+        let userSpan = document.createElement('span');
+        userSpan.className = 'username';
+        userSpan.innerHTML = `${user}:`;
+        if (user == 'you') {
+          userSpan.style.backgroundColor = 'bisque';
+          userSpan.style.fontWeight = 'bold';
+        } else if (user === 'sybim' || user === 'sybim_error') {
+          userSpan.style.backgroundColor = 'mediumpurple';
+          userSpan.style.fontWeight = 'bold';
+          userSpan.innerHTML = 'sybim:';
+        } else {
+          if (!(user in this.userColors)) {
+            this.userColors[user] = generateRandomLightColor();
+          }
+          userSpan.style.backgroundColor = this.userColors[user];
+        }
+
+        let contentSpan = document.createElement('span');
+        contentSpan.className = 'content';
+        contentSpan.innerHTML = msg;
+        if (user === 'sybim_error') {
+          contentSpan.style.color = 'indianred';
+          contentSpan.style.fontWeight = 'bold';
+        }
+        chatLine.appendChild(userSpan)
+        chatLine.appendChild(contentSpan);
+
+        document.querySelector('.chat-line:last-of-type').after(chatLine);
       }
 
       sendLove(msg) {
@@ -796,7 +730,6 @@
       let file = evt.target.files[0];
       let canPlay = videoPlayer.canPlayType(file.type);
       if (canPlay === '' || canPlay === 'no') {
-        logError(`Cannot play ${file.type}`);
         toast(`Cannot play selected video`);
         helpController.showInvalidVideoTypeHelp(file.type);
         return;
@@ -849,10 +782,6 @@
     $("sidebar-open-btn").onclick = evt => {
       $("sidebar").style.display = "flex";
       $("sidebar-open-btn").style.display = "none"; 
-    };
-
-    $("clear-log-btn").onclick = evt => {
-      clearLogs();
     };
   </script>
 
