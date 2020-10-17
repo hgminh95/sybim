@@ -16,28 +16,34 @@
 
 using namespace seasocks;
 
-class PlayerGroup {
+class Room {
  public:
-  void AddSocket(WebSocket *socket) {
-    if (size() == 0) {
-      owner_ = socket;
-      socket->send("r:o");
-    } else {
-      socket->send("r:s");
-    }
+  Room(std::string_view name, bool enable_chat, std::string_view password)
+      : name_(name), enable_chat_(enable_chat), password_(password) {
+    token_ = str::gen_random(32);
+  }
 
-    sockets_.insert(socket);
+  void AddMember(WebSocket *socket, std::string prefered_name) {
+    auto [iter, created] = members_.emplace(socket, MemberInfo(prefered_name, ++member_id_, socket));
+
+    if (!owner_) {
+      owner_ = socket;
+      socket->send("r:o:" + iter->second.nickname());
+    } else {
+      socket->send("r:s:" + iter->second.nickname());
+    }
 
     SendCurrentStatus(socket);
     BroadcastUserCount();
   }
 
-  void RemoveSocket(WebSocket *socket) {
-    sockets_.erase(socket);
+  void RemoveMember(WebSocket *socket) {
+    members_.erase(socket);
     if (socket == owner_) {
-      if (sockets_.size() > 0) {
-        owner_ = *sockets_.begin();
-        owner_->send("r:o");
+      if (members_.size() > 0) {
+        auto &new_owner = members_.begin()->second;
+        owner_ = new_owner.socket();
+        owner_->send("r:o:" + new_owner.nickname());
       } else {
         owner_ = nullptr;
       }
@@ -72,7 +78,7 @@ class PlayerGroup {
     if (source == nullptr)
       source = owner_;
 
-    for (auto socket : sockets_) {
+    for (auto &[socket, member] : members_) {
       if (socket != source)
         socket->send(reinterpret_cast<const uint8_t*>(data.data()), data.size());
     }
@@ -93,7 +99,7 @@ class PlayerGroup {
   }
 
   int size() const {
-    return sockets_.size();
+    return members_.size();
   }
 
   WebSocket* owner() const {
@@ -108,17 +114,60 @@ class PlayerGroup {
     return md5_hash_;
   }
 
+  std::string metadata() const {
+    if (password_ != "_") {
+      return std::to_string(enable_chat_) + ":*";
+    } else {
+      return std::to_string(enable_chat_) + ":_";
+    }
+  }
+
+  std::string password() const {
+    return password_;
+  }
+
+  std::string token() const {
+    return token_;
+  }
+
  private:
-  std::unordered_set<WebSocket*> sockets_;
+  class MemberInfo {
+   public:
+    MemberInfo(std::string name, int id, WebSocket *socket) : socket_(socket) {
+      nickname_ = name + "#" + std::to_string(id);
+    }
+
+    std::string nickname() const {
+      return nickname_;
+    }
+
+    WebSocket* socket() const {
+      return socket_;
+    }
+
+   private:
+    std::string nickname_;
+    WebSocket *socket_;
+  };
+
+  std::unordered_map<WebSocket*, MemberInfo> members_;
+  int member_id_{0};
+
   WebSocket* owner_{nullptr};
   std::string md5_hash_;
+
+  std::string name_;
+  bool enable_chat_;
+  std::string password_;
+
+  std::string token_;
 
   bool is_playing_{false};
   double last_video_timestamp_{0};
   std::chrono::steady_clock::time_point last_timestamp_;
 
   void BroadcastUserCount() {
-    for (auto socket : sockets_) {
+    for (auto &[socket, _] : members_) {
       socket->send("user_count:" + std::to_string(size()));
     }
   }
@@ -135,11 +184,10 @@ class SyncHandler : public WebSocket::Handler {
       return;
 
     sockets_map_[connection] = nullptr;
-    connection->send("l:s");
   }
 
   void onData(WebSocket *connection, const char *data) {
-    PlayerGroup *player_group = nullptr;
+    Room *player_group = nullptr;
     auto it = sockets_map_.find(connection);
     if (it != sockets_map_.end())
       player_group = it->second;
@@ -153,7 +201,25 @@ class SyncHandler : public WebSocket::Handler {
 
     if (command == "hb") {
       connection->send("hb");
+    } else if (str::has_prefix(command, "qr:")) {
+      // Query Room Information
+      QueryRoom(connection, command.substr(3));
+    } else if (str::has_prefix(command, "cr:")) {
+      // Create Room
+      if (player_group == nullptr) {
+        CreateRoom(connection, command.substr(3));
+      } else {
+        LOG(ERROR) << "Cannot create room while it is already in other room";
+      }
+    } else if (str::has_prefix(command, "ar:")) {
+      // Access Room, to obtain token
+      if (player_group == nullptr) {
+        AccessRoom(connection, command.substr(3));
+      } else {
+        LOG(ERROR) << "Cannot access room while it is already in other room";
+      }
     } else if (str::has_prefix(command, "r:j:")) {
+      // Join Room
       JoinRoom(player_group, connection, command.substr(4));
     } else if (str::has_prefix(command, "c:b:")) {
       BroadcastCommand(player_group, connection, command.substr(4));
@@ -185,43 +251,105 @@ class SyncHandler : public WebSocket::Handler {
 
     auto player_group = it->second;
     if (player_group)
-      player_group->RemoveSocket(connection);
+      player_group->RemoveMember(connection);
     sockets_map_.erase(it);
   }
 
  private:
   Server *server_;
-  std::unordered_map<WebSocket*, PlayerGroup*> sockets_map_;
-  std::unordered_map<std::string, PlayerGroup*> groups_map_;
+  std::unordered_map<WebSocket*, Room*> sockets_map_;
+  std::unordered_map<std::string, Room*> groups_map_;
 
   std::chrono::steady_clock::time_point last_reported_time_;
 
-  void JoinRoom(PlayerGroup *group, WebSocket *socket, std::string_view group_name) {
-    if (group)
-      group->RemoveSocket(socket);
+  void QueryRoom(WebSocket *socket, std::string_view room_name) {
+    std::string group_name{room_name};
 
-    std::string group_name_str{group_name};
-
-    PlayerGroup *player_group{nullptr};
-    auto it = groups_map_.find(group_name_str);
-    if (it != groups_map_.end()) {
-      player_group = it->second;
-
-      player_group->AddSocket(socket);
-      sockets_map_[socket] = player_group;
-      if (!player_group->md5_hash().empty())
-        player_group->Broadcast(nullptr, "hash:" + player_group->md5_hash());
+    if (auto it = groups_map_.find(group_name); it != groups_map_.end()) {
+      socket->send(it->second->metadata());
     } else {
-      player_group = new PlayerGroup();
-      groups_map_[group_name_str] = player_group;
-
-      player_group->AddSocket(socket);
-      sockets_map_[socket] = player_group;
-      LOG(INFO) << "Create new room " << group_name_str;
+      LOG(ERROR) << "Room does not exist";
+      socket->send(":");
     }
   }
 
-  void BroadcastCommand(PlayerGroup *group, WebSocket *socket, std::string_view cmd) {
+  void CreateRoom(WebSocket *socket, std::string_view room_info) {
+    // Room Info must follow this format: "<enable_chat>:<password>"
+    auto tokens = str::split(room_info, ":");
+
+    if (tokens.size() != 2) {
+      LOG(ERROR) << "Receive invalid create room request: " << room_info;
+      return;
+    }
+
+    std::string group_name = str::gen_random(6);
+    while (groups_map_.count(group_name))
+      group_name = str::gen_random(6);
+
+    auto player_group = new Room(group_name, tokens[0] == "1", tokens[1]);
+    groups_map_[group_name] = player_group;
+
+    LOG(INFO) << "Create new room " << group_name;
+
+    socket->send(group_name + ":" + player_group->token());
+  }
+
+  void AccessRoom(WebSocket *socket, std::string_view room_access) {
+    // <room_name>:<password>
+    auto tokens = str::split(room_access, ":");
+
+    if (tokens.size() != 2) {
+      LOG(ERROR) << "Receive invalid access room request: " << room_access;
+      return;
+    }
+
+    std::string group_name{tokens[0]};
+
+    if (auto it = groups_map_.find(group_name); it != groups_map_.end()) {
+      auto player_group = it->second;
+
+      if (tokens[1] == player_group->password())
+        socket->send(player_group->token());
+      else
+        socket->send("x");
+    } else {
+      LOG(ERROR) << "Invalid room";
+    }
+  }
+
+  void JoinRoom(Room *group, WebSocket *socket, std::string_view join_info) {
+    if (group)
+      group->RemoveMember(socket);
+
+    auto tokens = str::split(join_info, ":");
+
+    if (tokens.size() != 3) {
+      LOG(ERROR) << "Receive invalid join room request: " << join_info
+                 << " tokens_size=" << tokens.size();
+      return;
+    }
+
+    std::string group_name{tokens[0]};
+
+    Room *player_group{nullptr};
+    if (auto it = groups_map_.find(group_name); it != groups_map_.end()) {
+      auto player_group = it->second;
+
+      if (tokens[1] == player_group->token()) {
+        player_group->AddMember(socket, std::string(tokens[2]));
+        sockets_map_[socket] = player_group;
+        if (!player_group->md5_hash().empty())
+          player_group->Broadcast(nullptr, "hash:" + player_group->md5_hash());
+      } else {
+        socket->send("x");
+      }
+    } else {
+      LOG(ERROR) << "Join request to non-exist room";
+      socket->send("n");
+    }
+  }
+
+  void BroadcastCommand(Room *group, WebSocket *socket, std::string_view cmd) {
     if (!group) {
       // socket->close();
       return;
@@ -232,7 +360,7 @@ class SyncHandler : public WebSocket::Handler {
     }
   }
 
-  void UpdateMD5Hash(PlayerGroup *group, WebSocket *socket, std::string_view cmd) {
+  void UpdateMD5Hash(Room *group, WebSocket *socket, std::string_view cmd) {
     if (!group) {
       // socket->close();
       return;
@@ -244,7 +372,7 @@ class SyncHandler : public WebSocket::Handler {
     }
   }
 
-  void RequestForStatus(PlayerGroup *group, WebSocket *socket) {
+  void RequestForStatus(Room *group, WebSocket *socket) {
     if (!group) {
       // socket->close();
       return;

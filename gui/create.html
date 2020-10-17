@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
+  <meta content="utf-8" http-equiv="encoding">
+  <title>SyBim</title>
+  <link rel="stylesheet" type="text/css" href="/static/main.css">
+  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
+  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
+  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
+  <link rel="manifest" href="/static/site.webmanifest">
+</head>
+
+<body>
+  <div class="center-screen">
+		<h1>&#127910; <a href="/">SyBim</a></h1>
+    <p><strong>Create</strong> a room</p>
+
+    <form style="text-align: left">
+      <label for="name">Nickname:</label><br>
+      <input type="text" id="name_input" name="name" style="width: 300px; margin-bottom: 1rem;"><br>
+
+      <input type="checkbox" id="enable_chat_checkbox" name="enable_chat" checked
+             style="margin-bottom: 1rem; margin-left: 0px;">
+      <label for="enable_chat_checkbox">Enable Chat</label><br>
+
+      <input type="checkbox" id="is_private_checkbox" name="is_private"
+             style="margin-bottom: 1rem; margin-left: 0px;">
+      <label for="is_private_checkbox">Private Room</label><br>
+
+      <div id="password_div" style="display: none;">
+        <label for="password_input">Password:</label><br>
+        <input type="text" id="password_input" name="password"
+               style="width: 300px; margin-bottom: 1rem;">
+      </div>
+
+      <button id="create_button">Create</button>
+    </form>
+    <div class="footer">
+      <span style="float: left; margin-left: 1rem">&copy; 2020 hgminh. All right reserved.</span>
+      <a id="buy-coffee-link" style="margin-right: 0.5rem"
+          href="https://www.buymeacoffee.com/hgminh" target="_blank">
+        <strong class="buy_coffee">Buy Me A &#9749;</strong>
+      </a>
+      <a style="margin-right: 1rem" href="/faq/"><strong>FAQ</strong></a>
+    </div>
+  </div>
+  <div id="toast"></div>
+
+  <script src="/static/base.js"></script>
+  <script>
+    let prevNickname = localStorage.getItem('nickname');
+    if (prevNickname != null)
+      $('name_input').value = prevNickname;
+
+    $("is_private_checkbox").onclick = e => {
+      if (e.target.checked) {
+        $("password_div").style.display = "block";
+      } else {
+        $("password_div").style.display = "none";
+      }
+    }
+
+    $("create_button").onclick = e => {
+      e.preventDefault();
+
+      let room_meta = '';
+      if ($('enable_chat_checkbox').checked)
+        room_meta = '1:';
+      else
+        room_meta = '0:';
+
+      if ($('is_private_checkbox').checked) {
+        let password = $('password_input').value;
+        if (password.length == 0) {
+          toast(`You must enter password for private room`);
+          return;
+        }
+        room_meta += password;
+      } else {
+        room_meta += "_";
+      }
+
+      request_ws(`cr:${room_meta}`, msg => {
+        let tokens = msg.split(":");
+
+        if (tokens.length !== 2) {
+          toast(`Unknown server response`);
+          return;
+        }
+
+        localStorage.setItem('token', tokens[1]);
+        localStorage.setItem('nickname', $('name_input').value);
+
+        window.location.href = `/r/${tokens[0]}`;
+      }, error => {
+        toast(`Something went wrong. Please try again later.`);
+      });
+    }
+  </script>
+</body>
+
+</html>

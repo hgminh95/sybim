@@ -51,3 +51,34 @@ function toggleFullScreen(elem) {
     }
   }
 }
+
+function getWSAddr() {
+  let loc = window.location, new_uri;
+  if (loc.protocol === "https:")
+    new_uri = "wss:";
+  else
+    new_uri = "ws:";
+  new_uri += "//" + loc.host + "/ws";
+
+  return new_uri;
+}
+
+function request_ws(cmd, success_callback, error_callback) {
+  socket = new WebSocket(getWSAddr());
+
+  socket.onopen = event => {
+    socket.send(cmd);
+  }
+
+  socket.onmessage = event => {
+    if (event.data.text) {
+      event.data.text().then(msg => success_callback(msg));
+    } else {
+      success_callback(event.data);
+    }
+  };
+
+  socket.onerror = event => {
+    error_callback && error_callback(event);
+  };
+}

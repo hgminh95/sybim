@@ -93,7 +93,7 @@
 
       <p style="margin-bottom: 0px; margin-top: 0px;"><strong>Invite Others?</strong> Use the link belows:</p>
       <p style="margin-bottom: 0.5rem; margin-top: 1rem;" class="monospace">
-        <input id="room-link-share" value="https://sybim.live/r/example" readonly/>
+        <input id="room-link-share" value="https://sybim.live/j/example" readonly/>
         <span id="copy-link-btn" class="icon" style="position: relative; top: -.25em; left: -.125em; cursor: pointer">
           &#128196;<span style="position: absolute; top: .25em; left: .25em">&#128196;</span>
         </span>
@@ -369,17 +369,6 @@
     let heartController = new HeartController();
   </script>
   <script>
-    function getWSAddr() {
-      let loc = window.location, new_uri;
-      if (loc.protocol === "https:")
-        new_uri = "wss:";
-      else
-        new_uri = "ws:";
-      new_uri += "//" + loc.host + "/ws";
-
-      return new_uri;
-    }
-
     class ApplicationController {
       constructor() {
         this.socket = null;
@@ -393,6 +382,7 @@
         this.localHash = '';
         this.hasVideo = false;
         this.userColors = {};
+        this.username = 'you';
       }
 
       connectToRoom(room) {
@@ -409,7 +399,7 @@
         this.socket.onopen = event => {
           this.isConnected = true;
           $("reconnect-overlay").style.display = "none";
-          this.socket.send(`r:j:${room}`);
+          this.socket.send(`r:j:${room}:${localStorage.getItem('token')}:${localStorage.getItem('nickname')}`);
           this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
           this.insertNewChat('sybim', 'Welcome! Have Fun (:');
         };
@@ -476,18 +466,29 @@
       }
 
       onMsgRecv(msg) {
+        if (msg === "n") {
+          window.location.href = '/';
+        }
+
+        if (msg === "x") {
+          window.location.href = `/j/${this.room}`;
+        }
+
         if (msg === "hb") {
-        } else if (msg === "l:s") {
-        } else if (msg === "r:o") {
-          this.isConnected = true;
-          this.onBecomeOwner();
-        } else if (msg === "r:s") {
-          this.onBecomeMember();
         } else {
           let tokens = msg.split(':');
 
-          if (tokens[0] == 'chat') {
-            this.onChatReceived(tokens[1]);
+          if (tokens[0] == 'r') {
+            if (tokens[1] == 'o') {
+              this.isConnected = true;
+              this.onBecomeOwner();
+            } else if (tokens[1] == 's') {
+              this.onBecomeMember();
+            }
+
+            this.username = tokens[2];
+          } else if (tokens[0] == 'chat') {
+            this.onChatReceived(tokens[1], tokens[2]);
           } else {
             if (!this.videoPlayer)
               return;
@@ -611,15 +612,15 @@
       }
 
       sendChat(msg) {
-        this.socket.send(`c:b:chat:${msg}`);
+        this.socket.send(`c:b:chat:${this.username}:${msg}`);
 
-        this.insertNewChat('you', msg);
+        this.insertNewChat(this.username, msg);
 
         this.sendLove(msg);
       }
 
-      onChatReceived(msg) {
-        this.insertNewChat('other', msg);
+      onChatReceived(other_ppl, msg) {
+        this.insertNewChat(other_ppl, msg);
 
         let chatPane = document.getElementById('chat-pane');
         chatPane.style.opacity = 1;
@@ -638,7 +639,7 @@
         let userSpan = document.createElement('span');
         userSpan.className = 'username';
         userSpan.innerHTML = `${user}:`;
-        if (user == 'you') {
+        if (user === this.username) {
           userSpan.style.backgroundColor = 'bisque';
           userSpan.style.fontWeight = 'bold';
         } else if (user === 'sybim' || user === 'sybim_error') {
@@ -692,7 +693,7 @@
     let room = window.location.pathname.split('/').pop();
     $("room-text").innerHTML = room;
     $("room-link-share").value = window.location.protocol + "//" + window.location.host +
-        "/r/" + room;
+        "/j/" + room;
     $("copy-link-btn").onclick = e => {
       $("room-link-share").select();
       document.execCommand("copy");

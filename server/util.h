@@ -42,4 +42,18 @@ static std::optional<double> to_double(std::string_view &str_view) {
   return res;
 }
 
+std::string gen_random(const int len) {
+  std::string tmp_s;
+  static const char alphanum[] =
+      "ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+      "abcdefghijklmnopqrstuvwxyz";
+
+  srand((unsigned) time(NULL) * getpid());
+
+  for (int i = 0; i < len; ++i) 
+    tmp_s += alphanum[rand() % (sizeof(alphanum) - 1)];
+
+  return tmp_s;
+}
+
 }  // namespace str
