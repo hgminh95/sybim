@@ -18,7 +18,9 @@
 
     <form style="text-align: left">
       <label for="name">Nickname:</label><br>
-      <input type="text" id="name_input" name="name" style="width: 300px; margin-bottom: 1rem;"><br>
+      <input type="text" id="name_input" name="name" maxlength="16"
+             style="width: 300px; margin-bottom: 1rem;">
+      <br>
 
       <div id="password_div" style="display: none;">
         <label for="password_input">Password:</label><br>
@@ -92,8 +94,15 @@
         if (msg === 'x') {
           toast('Access denied. Password is wrong.');
         } else {
+          let nickname = $('name_input').value;
+
+          if (nickname.length == 0) {
+            toast('Nickname is empty')
+            return;
+          }
+
           localStorage.setItem('token', msg);
-          localStorage.setItem('nickname', $('name_input').value);
+          localStorage.setItem('nickname', nickname);
 
           window.location.href = `/r/${room}`;
         }
