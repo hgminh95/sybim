@@ -102,7 +102,22 @@
       <hr style="width: 100%"/>
 
       <p style="margin-top: 0px"><strong>Video</strong></p>
-      <input id="video-input" type="file" accept="video/*" style="min-height: 25px"/>
+      <p style="margin-top: 0.5rem; margin-bottom: 0.5rem">
+        <label for="video-input" style="cursor: pointer; border: 1px solid #ccc; display: inline-block;">
+          Browse Local File
+        </label>
+        <input id="video-input" type="file" accept="video/*" style="min-height: 25px; opacity: 0; position: absolute; z-index: -1;"/>
+      </p>
+
+      <p style="margin-top: 0.2; margin-bottom: 0.5rem">
+        <input id="youtube-link" value=""/>
+        <button id="youtube-link-btn">Youtube</button>
+      </p>
+
+      <p style="margin-top: 0.2; margin-bottom: 0.5rem">
+        <input id="remote-link" value=""/>
+        <button id="remote-link-btn">Internet</button>
+      </p>
 
       <p><strong>Subtitles</strong></p>
       <input id="subtitle-input" type="file" accept=".vtt,.srt" style="min-height: 25px"/>
@@ -121,7 +136,7 @@
   <script src="/static/third_party/srt_webvtt.js"></script>
   <script src="/static/third_party/spark-md5.min.js"></script>
   <script src="/static/third_party/video.js"></script>
-  <!--<script src="//cdn.sc.gl/videojs-hotkeys/0.2/videojs.hotkeys.min.js"></script>-->
+  <script src="/static/third_party/videojs.youtube.min.js"></script>
   <script src="/static/base.js"></script>
   <script>
     /* Taken from video.js source code */
@@ -513,7 +528,6 @@
       }
 
       onNewURL(url, type) {
-        url += "#t=5";
         this.hasVideo = true;
 
         this.videoPlayer.src({src: url, type: type});
@@ -705,6 +719,15 @@
       controls: true,
       autoplay: false,
       preload: 'auto',
+      techOrder: ["youtube", "html5"],
+      youtube: {
+        controls: 1,
+        modestbranding: 1,
+        disablekb: 1,
+        cc_load_policy: 1,
+        cc_lang_pref: 'en',
+        fs: 0,
+      },
       children: {
         bigPlayButton: false,
         textTrackDisplay: true,
@@ -739,6 +762,20 @@
         calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
         controller.onNewURL(URL.createObjectURL(file), file.type);
       }
+    }
+
+    $("youtube-link-btn").onclick = evt => {
+      let youtube_url = $("youtube-link").value;
+
+      helpController.hide();
+      controller.onNewURL(youtube_url, 'video/youtube');
+    }
+
+    $("remote-link-btn").onclick = evt => {
+      let remote_url = $("remote-link").value;
+
+      helpController.hide();
+      controller.onNewURL(remote_url);
     }
 
     $("subtitle-input").onchange = evt => {
