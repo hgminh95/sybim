@@ -66,9 +66,9 @@
 
       let room_meta = '';
       if ($('enable_chat_checkbox').checked)
-        room_meta = '1:';
+        room_meta = '1|';
       else
-        room_meta = '0:';
+        room_meta = '0|';
 
       if ($('is_private_checkbox').checked) {
         let password = $('password_input').value;
@@ -88,8 +88,8 @@
         return;
       }
 
-      request_ws(`cr:${room_meta}`, msg => {
-        let tokens = msg.split(":");
+      request_ws(`cr|${room_meta}`, msg => {
+        let tokens = msg.split("|");
 
         if (tokens.length !== 2) {
           toast(`Unknown server response`);

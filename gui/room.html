@@ -414,7 +414,7 @@
         this.socket.onopen = event => {
           this.isConnected = true;
           $("reconnect-overlay").style.display = "none";
-          this.socket.send(`r:j:${room}:${localStorage.getItem('token')}:${localStorage.getItem('nickname')}`);
+          this.socket.send(`r|j|${room}|${localStorage.getItem('token')}|${localStorage.getItem('nickname')}`);
           this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
           this.insertNewChat('sybim', 'Welcome! Have Fun (:');
         };
@@ -491,7 +491,7 @@
 
         if (msg === "hb") {
         } else {
-          let tokens = msg.split(':');
+          let tokens = msg.split('|');
 
           if (tokens[0] == 'r') {
             if (tokens[1] == 'o') {
@@ -541,6 +541,8 @@
         });
 
         this.videoPlayer.focus();
+
+        // this.socket.send(`c|b|source|${`
       }
 
       attachVideoPlayer(videoPlayer) {
@@ -548,14 +550,14 @@
         videoPlayer.on("pause", e => {
           if (!videoPlayer.seeking()) {
             if (this.isOwner) {
-              this.socket.send(`c:b:pause:${videoPlayer.currentTime()}`);
+              this.socket.send(`c|b|pause|${videoPlayer.currentTime()}`);
             }
           }
         });
 
         videoPlayer.on("play", e => {
           if (this.isOwner) {
-            this.socket.send(`c:b:play:${videoPlayer.currentTime()}`);
+            this.socket.send(`c|b|play|${videoPlayer.currentTime()}`);
           }
         });
 
@@ -582,25 +584,25 @@
             let seekTime = this.videoPlayer.currentTime() + 5;
             this.videoPlayer.currentTime(seekTime);
             if (this.videoPlayer.paused())
-              this.socket.send(`c:b:pause:${seekTime}`);
+              this.socket.send(`c|b|pause|${seekTime}`);
             else
-              this.socket.send(`c:b:play:${seekTime}`);
+              this.socket.send(`c|b|play|${seekTime}`);
           }
 
           if (e.keyCode === 37) { // Left Arrow
             let seekTime = this.videoPlayer.currentTime() - 5;
             this.videoPlayer.currentTime(seekTime);
             if (this.videoPlayer.paused())
-              this.socket.send(`c:b:pause:${seekTime}`);
+              this.socket.send(`c|b|pause|${seekTime}`);
             else
-              this.socket.send(`c:b:play:${seekTime}`);
+              this.socket.send(`c|b|play|${seekTime}`);
           }
         });
       }
 
       updateLocalHash(md5) {
         this.localHash = md5;
-        this.socket.send(`c:h:hash:${md5}`);
+        this.socket.send(`c|h|hash|${md5}`);
 
         this.compareHash();
       }
@@ -622,11 +624,11 @@
       }
 
       requestStatus() {
-        this.socket.send("c:rs");
+        this.socket.send("c|rs");
       }
 
       sendChat(msg) {
-        this.socket.send(`c:b:chat:${this.username}:${msg}`);
+        this.socket.send(`c|b|chat|${this.username}|${msg}`);
 
         this.insertNewChat(this.username, msg);
 

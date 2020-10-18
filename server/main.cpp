@@ -29,9 +29,9 @@ class Room {
 
     if (!owner_) {
       owner_ = socket;
-      socket->send("r:o:" + iter->second.nickname());
+      socket->send("r|o|" + iter->second.nickname());
     } else {
-      socket->send("r:s:" + iter->second.nickname());
+      socket->send("r|s|" + iter->second.nickname());
     }
 
     SendCurrentStatus(socket);
@@ -46,7 +46,7 @@ class Room {
       if (members_.size() > 0) {
         auto &new_owner = members_.begin()->second;
         owner_ = new_owner.socket();
-        owner_->send("r:o:" + new_owner.nickname());
+        owner_->send("r|o|" + new_owner.nickname());
       } else {
         owner_ = nullptr;
       }
@@ -58,7 +58,7 @@ class Room {
   }
 
   void Broadcast(WebSocket *source, std::string_view data) {
-    auto tokens = str::split(data, ":");
+    auto tokens = str::split(data, "|");
     if (tokens.empty())
       return;
 
@@ -97,9 +97,9 @@ class Room {
           last_timestamp_.time_since_epoch()).count() == 0)
         offset = 0;
 
-      socket->send("play:" + std::to_string(last_video_timestamp_ + offset));
+      socket->send("play|" + std::to_string(last_video_timestamp_ + offset));
     } else {
-      socket->send("pause:" + std::to_string(last_video_timestamp_));
+      socket->send("pause|" + std::to_string(last_video_timestamp_));
     }
   }
 
@@ -121,9 +121,9 @@ class Room {
 
   std::string metadata() const {
     if (password_ != "_") {
-      return std::to_string(enable_chat_) + ":*";
+      return std::to_string(enable_chat_) + "|*";
     } else {
-      return std::to_string(enable_chat_) + ":_";
+      return std::to_string(enable_chat_) + "|_";
     }
   }
 
@@ -184,7 +184,7 @@ class Room {
 
   void BroadcastUserCount() {
     for (auto &[socket, _] : members_) {
-      socket->send("user_count:" + std::to_string(size()));
+      socket->send("user_count|" + std::to_string(size()));
     }
   }
 };
@@ -209,7 +209,7 @@ class SyncHandler : public WebSocket::Handler {
       player_group = it->second;
 
     std::string_view command{data};
-    if (command.length() > 256) {
+    if (command.length() > 1024) {
       // Message is too long, probably something malicious
       connection->close();
       return;
@@ -217,31 +217,31 @@ class SyncHandler : public WebSocket::Handler {
 
     if (command == "hb") {
       connection->send("hb");
-    } else if (str::has_prefix(command, "qr:")) {
+    } else if (str::has_prefix(command, "qr|")) {
       // Query Room Information
       QueryRoom(connection, command.substr(3));
-    } else if (str::has_prefix(command, "cr:")) {
+    } else if (str::has_prefix(command, "cr|")) {
       // Create Room
       if (player_group == nullptr) {
         CreateRoom(connection, command.substr(3));
       } else {
         LOG(ERROR) << "Cannot create room while it is already in other room";
       }
-    } else if (str::has_prefix(command, "ar:")) {
+    } else if (str::has_prefix(command, "ar|")) {
       // Access Room, to obtain token
       if (player_group == nullptr) {
         AccessRoom(connection, command.substr(3));
       } else {
         LOG(ERROR) << "Cannot access room while it is already in other room";
       }
-    } else if (str::has_prefix(command, "r:j:")) {
+    } else if (str::has_prefix(command, "r|j|")) {
       // Join Room
       JoinRoom(player_group, connection, command.substr(4));
-    } else if (str::has_prefix(command, "c:b:")) {
+    } else if (str::has_prefix(command, "c|b|")) {
       BroadcastCommand(player_group, connection, command.substr(4));
-    } else if (str::has_prefix(command, "c:h:")) {
+    } else if (str::has_prefix(command, "c|h|")) {
       UpdateMD5Hash(player_group, connection, command.substr(4));
-    } else if (command == "c:rs") {
+    } else if (command == "c|rs") {
       RequestForStatus(player_group, connection);
     } else {
       /* Craps */
@@ -285,13 +285,13 @@ class SyncHandler : public WebSocket::Handler {
       socket->send(it->second->metadata());
     } else {
       LOG(ERROR) << "Room does not exist";
-      socket->send(":");
+      socket->send("|");
     }
   }
 
   void CreateRoom(WebSocket *socket, std::string_view room_info) {
     // Room Info must follow this format: "<enable_chat>:<password>"
-    auto tokens = str::split(room_info, ":");
+    auto tokens = str::split(room_info, "|");
 
     if (tokens.size() != 2) {
       LOG(ERROR) << "Receive invalid create room request: " << room_info;
@@ -307,12 +307,12 @@ class SyncHandler : public WebSocket::Handler {
 
     LOG(INFO) << "Create new room " << group_name;
 
-    socket->send(group_name + ":" + player_group->token());
+    socket->send(group_name + "|" + player_group->token());
   }
 
   void AccessRoom(WebSocket *socket, std::string_view room_access) {
     // <room_name>:<password>
-    auto tokens = str::split(room_access, ":");
+    auto tokens = str::split(room_access, "|");
 
     if (tokens.size() != 2) {
       LOG(ERROR) << "Receive invalid access room request: " << room_access;
@@ -337,7 +337,7 @@ class SyncHandler : public WebSocket::Handler {
     if (group)
       group->RemoveMember(socket);
 
-    auto tokens = str::split(join_info, ":");
+    auto tokens = str::split(join_info, "|");
 
     if (tokens.size() != 3) {
       LOG(ERROR) << "Receive invalid join room request: " << join_info
@@ -371,7 +371,7 @@ class SyncHandler : public WebSocket::Handler {
       return;
     }
 
-    if (socket == group->owner() || cmd.rfind("chat:", 0) == 0) {
+    if (socket == group->owner() || cmd.rfind("chat|", 0) == 0) {
       group->Broadcast(socket, cmd);
     }
   }
@@ -382,7 +382,7 @@ class SyncHandler : public WebSocket::Handler {
       return;
     }
 
-    if (socket == group->owner() && str::has_prefix(cmd, "hash:")) {
+    if (socket == group->owner() && str::has_prefix(cmd, "hash|")) {
       group->Broadcast(socket, cmd);
       group->set_md5_hash(std::string{cmd.substr(5)});
     }
