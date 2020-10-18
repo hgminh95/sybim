@@ -52,7 +52,7 @@
     let room = window.location.pathname.split('/').pop();
     $("room_name").innerHTML = room;
 
-    request_ws(`qr:${room}`, msg => {
+    request_ws(`qr|${room}`, msg => {
       if (msg === "|") {
         toast(`Room ${room} does not exist`);
         $("join_button").innerHTML = "Invalid Room";
