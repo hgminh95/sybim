@@ -502,24 +502,28 @@
             }
 
             this.username = tokens[2];
-          } else if (tokens[0] == 'chat') {
+          } else if (tokens[0] === 'chat') {
             this.onChatReceived(tokens[1], tokens[2]);
           } else {
             if (!this.videoPlayer)
               return;
 
-            if (tokens[0] == 'play') {
+            if (tokens[0] === 'play') {
               this.videoPlayer.currentTime(parseFloat(tokens[1]));
               this.videoPlayer.play();
-            } else if (tokens[0] == 'pause') {
+            } else if (tokens[0] === 'pause') {
               this.videoPlayer.currentTime(parseFloat(tokens[1]));
               this.videoPlayer.pause();
-            } else if (tokens[0] == 'seek') {
+            } else if (tokens[0] === 'seek') {
               this.videoPlayer.currentTime(parseFloat(tokens[1]));
-            } else if (tokens[0] == 'hash') {
+            } else if (tokens[0] === 'hash') {
               this.updateUpstreamHash(tokens[1]);
-            } else if (tokens[0] == 'user_count') {
+            } else if (tokens[0] === 'user_count') {
               $('user-count-text').innerHTML = tokens[1];
+            } else if (tokens[0] === 'source') {
+              if (tokens.length === 3) {
+                this.onNewURL(tokens[1], tokens[2]);
+              }
             } else {
               console.log(tokens[0]);
             }
@@ -528,6 +532,8 @@
       }
 
       onNewURL(url, type) {
+        helpController.hide();
+
         this.hasVideo = true;
 
         this.videoPlayer.src({src: url, type: type});
@@ -542,7 +548,7 @@
 
         this.videoPlayer.focus();
 
-        // this.socket.send(`c|b|source|${`
+        this.socket.send(`c|b|source|${url}|${type}`);
       }
 
       attachVideoPlayer(videoPlayer) {
@@ -753,6 +759,9 @@
     controller.attachVideoPlayer(videoPlayer);
 
     $("video-input").onchange = evt => {
+      if (evt.target.files.length === 0)
+        return;
+
       let file = evt.target.files[0];
       let canPlay = videoPlayer.canPlayType(file.type);
       if (canPlay === '' || canPlay === 'no') {
@@ -760,7 +769,6 @@
         helpController.showInvalidVideoTypeHelp(file.type);
         return;
       } else {
-        helpController.hide();
         calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
         controller.onNewURL(URL.createObjectURL(file), file.type);
       }
@@ -769,14 +777,12 @@
     $("youtube-link-btn").onclick = evt => {
       let youtube_url = $("youtube-link").value;
 
-      helpController.hide();
       controller.onNewURL(youtube_url, 'video/youtube');
     }
 
     $("remote-link-btn").onclick = evt => {
       let remote_url = $("remote-link").value;
 
-      helpController.hide();
       controller.onNewURL(remote_url);
     }
 

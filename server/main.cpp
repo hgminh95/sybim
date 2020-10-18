@@ -355,7 +355,7 @@ class SyncHandler : public WebSocket::Handler {
         player_group->AddMember(socket, std::string(tokens[2]));
         sockets_map_[socket] = player_group;
         if (!player_group->md5_hash().empty())
-          player_group->Broadcast(nullptr, "hash:" + player_group->md5_hash());
+          player_group->Broadcast(nullptr, "hash|" + player_group->md5_hash());
       } else {
         socket->send("x");
       }
