@@ -81,6 +81,13 @@
         room_meta += "_";
       }
 
+      let nickname = $('name_input').value;
+
+      if (nickname.length == 0) {
+        toast('Nickname is empty')
+        return;
+      }
+
       request_ws(`cr:${room_meta}`, msg => {
         let tokens = msg.split(":");
 
@@ -90,7 +97,7 @@
         }
 
         localStorage.setItem('token', tokens[1]);
-        localStorage.setItem('nickname', $('name_input').value);
+        localStorage.setItem('nickname', nickname);
 
         window.location.href = `/r/${tokens[0]}`;
       }, error => {

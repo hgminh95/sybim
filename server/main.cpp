@@ -21,6 +21,7 @@ class Room {
   Room(std::string_view name, bool enable_chat, std::string_view password)
       : name_(name), enable_chat_(enable_chat), password_(password) {
     token_ = str::gen_random(32);
+    last_active_time_ = std::chrono::steady_clock::now();
   }
 
   void AddMember(WebSocket *socket, std::string prefered_name) {
@@ -35,6 +36,8 @@ class Room {
 
     SendCurrentStatus(socket);
     BroadcastUserCount();
+
+    last_active_time_ = std::chrono::steady_clock::now();
   }
 
   void RemoveMember(WebSocket *socket) {
@@ -50,6 +53,8 @@ class Room {
     }
 
     BroadcastUserCount();
+
+    last_active_time_ = std::chrono::steady_clock::now();
   }
 
   void Broadcast(WebSocket *source, std::string_view data) {
@@ -130,6 +135,15 @@ class Room {
     return token_;
   }
 
+  bool is_stale() const {
+    auto now = std::chrono::steady_clock::now();
+
+    auto inactive_duration = std::chrono::duration_cast<std::chrono::minutes>(
+        now - last_active_time_).count();
+
+    return inactive_duration > 5;  // minutes
+  }
+
  private:
   class MemberInfo {
    public:
@@ -159,6 +173,8 @@ class Room {
   std::string name_;
   bool enable_chat_;
   std::string password_;
+
+  std::chrono::steady_clock::time_point last_active_time_;
 
   std::string token_;
 
@@ -384,7 +400,7 @@ class SyncHandler : public WebSocket::Handler {
   void CleanEmptyGroup() {
     int cnt{0};
     for (auto it = groups_map_.begin(); it != groups_map_.end();) {
-      if (it->second->size() == 0) {  // no users in the group
+      if (it->second->size() == 0 && it->second->is_stale()) {  // no users in the group
         it = groups_map_.erase(it);
         ++cnt;
       } else {
