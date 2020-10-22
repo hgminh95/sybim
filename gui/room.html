@@ -121,7 +121,7 @@
                 style="margin-left: 1rem; margin-right: 1rem; cursor: pointer">▶️</span>
           </div>
 
-          <p style="margin-bottom: 0">Input video URL from Internet (Youtube, Vimeo, etc).</p>
+          <p style="margin-bottom: 0">Input video URL from Internet (Youtube, Vimeo, Dailymotion, etc).</p>
         </div>
       </div>
 
@@ -330,15 +330,18 @@
     var videoSelectionController = {
       init() {
         this.state = 'local';
-        this.enable = true;
+        this.is_enable = true;
         this.local_video_btn = $('local-video-btn');
         this.remote_video_btn = $('remote-video-btn');
 
         this.local_video_section = $('local-video-section');
         this.remote_video_section = $('remote-video-section');
 
+        this.source_callback = null;
+        this.invalid_video_callback = null;
+
         this.local_video_btn.onclick = evt => {
-          if (this.state !== 'local' && this.enable) {
+          if (this.state !== 'local' && this.is_enable) {
             this.state = 'local';
             this.local_video_btn.classList.add('active');
             this.remote_video_btn.classList.remove('active');
@@ -346,10 +349,10 @@
             this.local_video_section.style.display = "block";
             this.remote_video_section.style.display = "none";
           }
-        }
+        };
 
         this.remote_video_btn.onclick = evt => {
-          if (this.state !== 'remote' && this.enable) {
+          if (this.state !== 'remote' && this.is_enable) {
             this.state = 'remote';
             this.local_video_btn.classList.remove('active');
             this.remote_video_btn.classList.add('active');
@@ -357,8 +360,86 @@
             this.local_video_section.style.display = "none";
             this.remote_video_section.style.display = "block";
           }
+        };
+
+        $("video-input").onchange = evt => {
+          if (evt.target.files.length === 0)
+            return;
+
+          let file = evt.target.files[0];
+          let canPlay = videoPlayer.canPlayType(file.type);
+          if (canPlay === '' || canPlay === 'no') {
+            toast(`Cannot play selected video`);
+            // helpController.showInvalidVideoTypeHelp(file.type);
+            return;
+          } else {
+            // calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
+            this.source_callback && this.source_callback('local', URL.createObjectURL(file), file.type);
+          }
+        };
+
+        $("remote-link-btn").onclick = evt => {
+          if (!this.is_enable)
+            return;
+
+          let remote_url = $("remote-link").value;
+
+          if (remote_url.startsWith('http://www.youtube.com/')
+              || remote_url.startsWith('https://www.youtube.com/')
+              || remote_url.startsWith('http://www.youtu.be/')
+              || remote_url.startsWith('https://www.youtu.be/')) {
+            this.source_callback && this.source_callback('remote', remote_url, 'video/youtube');
+          } else {
+            this.source_callback && this.source_callback('remote', remote_url);
+          }
+        };
+      },
+
+      registerSourceCallback(source_callback) {
+        this.source_callback = source_callback;
+      },
+
+      switchTo(source, url) {
+        if (source === 'local' && this.state !== 'local') {
+          this.state = 'local';
+          this.local_video_btn.classList.add('active');
+          this.remote_video_btn.classList.remove('active');
+
+          this.local_video_section.style.display = "block";
+          this.remote_video_section.style.display = "none";
         }
-      }
+
+        if (source === 'remote' && this.state !== 'remote') {
+          this.state = 'remote';
+          this.local_video_btn.classList.remove('active');
+          this.remote_video_btn.classList.add('active');
+
+          this.local_video_section.style.display = "none";
+          this.remote_video_section.style.display = "block";
+
+          $('remote-link').value = url;
+        }
+      },
+
+      disable() {
+        this.is_enable = false;
+
+        this.local_video_btn.classList.add('disabled');
+        this.remote_video_btn.classList.add('disabled');
+
+        $('remote-link').disabled = true;
+        $('remote-link-btn').style.display = "none";
+      },
+
+      enable() {
+        this.is_enable = true;
+
+        this.local_video_btn.classList.remove('disabled');
+        this.remote_video_btn.classList.remove('disabled');
+
+        $('remote-link').disabled = false;
+        $('remote-link-btn').style.display = "inline";
+      },
     }
 
     videoSelectionController.init();
@@ -427,6 +508,7 @@
         this.upstreamHash = '';
         this.localHash = '';
         this.hasVideo = false;
+        this.prevUrl = '';
         this.userColors = {};
         this.username = 'you';
       }
@@ -494,6 +576,8 @@
         let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
         bigPlayButton.enable();
         bigPlayButton.show();
+
+        videoSelectionController.enable();
       }
 
       onBecomeMember() {
@@ -509,6 +593,8 @@
         let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
         bigPlayButton.disable();
         bigPlayButton.hide();
+
+        videoSelectionController.disable();
       }
 
       onMsgRecv(msg) {
@@ -552,8 +638,8 @@
             } else if (tokens[0] === 'user_count') {
               $('user-count-text').innerHTML = tokens[1];
             } else if (tokens[0] === 'source') {
-              if (tokens.length === 3) {
-                this.onNewURL(tokens[1], tokens[2]);
+              if (tokens.length === 4) {
+                this.onNewURL(tokens[1], tokens[2], tokens[3]);
               }
             } else {
               console.log(tokens[0]);
@@ -562,7 +648,16 @@
         }
       }
 
-      onNewURL(url, type) {
+      onNewURL(source, url, type) {
+        // Workaround, might remote later
+        if (type === 'undefined')
+          type = undefined;
+
+        if (this.prevUrl === url)
+          return;
+
+        this.prevUrl = url;
+
         helpController.hide();
 
         this.hasVideo = true;
@@ -579,7 +674,15 @@
 
         this.videoPlayer.focus();
 
-        this.socket.send(`c|b|source|${url}|${type}`);
+        console.log(source);
+        console.log(url);
+        console.log(this.isOwner);
+
+        if (this.isOwner) {
+          this.socket.send(`c|b|source|${source}|${url}|${type}`);
+        }
+
+        videoSelectionController.switchTo(source, url);
       }
 
       attachVideoPlayer(videoPlayer) {
@@ -788,33 +891,8 @@
     controller.connectToRoom(room);
     controller.attachVideoPlayer(videoPlayer);
 
-    $("video-input").onchange = evt => {
-      if (evt.target.files.length === 0)
-        return;
-
-      let file = evt.target.files[0];
-      let canPlay = videoPlayer.canPlayType(file.type);
-      if (canPlay === '' || canPlay === 'no') {
-        toast(`Cannot play selected video`);
-        helpController.showInvalidVideoTypeHelp(file.type);
-        return;
-      } else {
-        calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
-        controller.onNewURL(URL.createObjectURL(file), file.type);
-      }
-    }
-
-    $("remote-link-btn").onclick = evt => {
-      let remote_url = $("remote-link").value;
-
-      if (remote_url.startsWith('http://www.youtube.com/')
-          || remote_url.startsWith('https://www.youtube.com/')
-          || remote_url.startsWith('http://www.youtu.be/')
-          || remote_url.startsWith('https://www.youtu.be/'))
-        controller.onNewURL(remote_url, 'video/youtube');
-      else
-        controller.onNewURL(remote_url);
-    }
+    videoSelectionController.registerSourceCallback(
+        controller.onNewURL.bind(controller));
 
     $("subtitle-input").onchange = evt => {
       let file = evt.target.files[0];

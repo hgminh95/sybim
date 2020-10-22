@@ -80,6 +80,10 @@ class Room {
       }
     }
 
+    if (tokens.size() == 4 && tokens[0] == "source") {
+      source_msg_ = std::string(data);
+    }
+
     if (source == nullptr)
       source = owner_;
 
@@ -101,6 +105,9 @@ class Room {
     } else {
       socket->send("pause|" + std::to_string(last_video_timestamp_));
     }
+
+    if (!source_msg_.empty())
+      socket->send(source_msg_);
   }
 
   int size() const {
@@ -177,6 +184,8 @@ class Room {
   std::chrono::steady_clock::time_point last_active_time_;
 
   std::string token_;
+
+  std::string source_msg_;
 
   bool is_playing_{false};
   double last_video_timestamp_{0};

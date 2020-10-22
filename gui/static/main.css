@@ -191,6 +191,16 @@ a, a:visited {
   cursor: default;
 }
 
+.toggle-btn > div.disabled {
+  cursor: not-allowed;
+  color: lightgrey;
+}
+
+.toggle-btn > div.disabled.active {
+  cursor: default;
+  color: black;
+}
+
 /* Main Page */
 
 .buy_coffee {
