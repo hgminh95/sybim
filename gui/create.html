@@ -14,27 +14,35 @@
 <body>
   <div class="center-screen">
 		<h1>&#127910; <a href="/">SyBim</a></h1>
-    <p><strong>Create</strong> a room</p>
+    <p style="font-size: larger"><strong>Create</strong> a room</p>
 
     <form style="text-align: left">
-      <label for="name">Nickname:</label><br>
+      <label for="name"><strong>Nickname</strong></label><br>
       <input type="text" id="name_input" name="name" style="width: 300px; margin-bottom: 1rem;"><br>
+
+      <label for="server"><strong>Server</strong></label><br>
+      <select id="server" style="width: 306px; margin-bottom: 1rem;">
+        <option>Asia (Singapore)</option>
+        <option>North America (New York City)</option>
+        <option>Europe (London)</option>
+      </select>
+      <br>
 
       <input type="checkbox" id="enable_chat_checkbox" name="enable_chat" checked
              style="margin-bottom: 1rem; margin-left: 0px;">
-      <label for="enable_chat_checkbox">Enable Chat</label><br>
+      <label for="enable_chat_checkbox"><strong>Enable Chat</strong></label><br>
 
       <input type="checkbox" id="is_private_checkbox" name="is_private"
              style="margin-bottom: 1rem; margin-left: 0px;">
-      <label for="is_private_checkbox">Private Room</label><br>
+      <label for="is_private_checkbox"><strong>Private Room</strong></label><br>
 
       <div id="password_div" style="display: none;">
-        <label for="password_input">Password:</label><br>
+        <label for="password_input"><strong>Password</strong></label><br>
         <input type="text" id="password_input" name="password"
                style="width: 300px; margin-bottom: 1rem;">
       </div>
 
-      <button id="create_button">Create</button>
+      <button id="create_button"><strong>Create</strong></button>
     </form>
   </div>
   <div id="toast"></div>
