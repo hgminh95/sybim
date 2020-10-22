@@ -78,57 +78,61 @@
       &#9776;
     </h2>
     <div id="sidebar" class="sidebar">
-      <h2>
+      <div class="title">
         &#127910; <a href="/">SyBim</a>
         <span id="sidebar-close-btn" class="icon" style="float: right; cursor: pointer">
           &#x25B6;
         </span>
-      </h2>
-      <hr style="width: 100%"/>
+      </div>
 
-      <p id="connect-success-msg">
-        <strong>&#128994; Room: </strong><span id="room-text"></span></span>.
-        <strong id="user-count-text">0</strong> people in this room.
-      </p>
+      <div class="section">
+        <div class="header">
+          🤙 Invite Others? Use the link below
+        </div>
+        <div style="display: flex">
+          <input id="room-link-share" readonly style="flex-grow: 1; font-family: monospace"/>
+          <span id="copy-link-btn" style="margin-left: 1rem; margin-right: 1rem;">
+            <span class="icon" style="position: relative; top: -.25em; left: -.125em; cursor: pointer">
+              &#128196;<span style="position: absolute; top: .25em; left: .25em">&#128196;</span>
+            </span>
+          </span>
+        </div>
+      </div>
 
-      <p style="margin-bottom: 0px; margin-top: 0px;"><strong>Invite Others?</strong> Use the link belows:</p>
-      <p style="margin-bottom: 0.5rem; margin-top: 1rem;" class="monospace">
-        <input id="room-link-share" value="https://sybim.live/j/example" readonly/>
-        <span id="copy-link-btn" class="icon" style="position: relative; top: -.25em; left: -.125em; cursor: pointer">
-          &#128196;<span style="position: absolute; top: .25em; left: .25em">&#128196;</span>
-        </span>
-      </p>
+      <div class="section">
+        <div class="header">🎬 Video</div>
 
-      <hr style="width: 100%"/>
+        <div class="toggle-btn">
+          <div id="local-video-btn" class="active">💻 Local</div>
+          <div id="remote-video-btn">🌐 Remote</div>
+        </div>
 
-      <p style="margin-top: 0px"><strong>Video</strong></p>
-      <p style="margin-top: 0.5rem; margin-bottom: 0.5rem">
-        <label for="video-input" style="cursor: pointer; border: 1px solid #ccc; display: inline-block;">
-          Browse Local File
-        </label>
-        <input id="video-input" type="file" accept="video/*" style="min-height: 25px; opacity: 0; position: absolute; z-index: -1;"/>
-      </p>
+        <div id="local-video-section" style="display: block; margin-top: 1rem">
+          <input id="video-input" type="file" accept="video/*" style="width: 100%"/>
 
-      <p style="margin-top: 0.2; margin-bottom: 0.5rem">
-        <input id="youtube-link" value=""/>
-        <button id="youtube-link-btn">Youtube</button>
-      </p>
+          <p style="margin-bottom: 0">Select video from your own device.</p>
+        </div>
 
-      <p style="margin-top: 0.2; margin-bottom: 0.5rem">
-        <input id="remote-link" value=""/>
-        <button id="remote-link-btn">Internet</button>
-      </p>
+        <div id="remote-video-section" style="display: none; margin-top: 1rem">
+          <div style="display: flex">
+            <input id="remote-link" style="flex-grow: 1" value=""
+                placeholder="https://url.to/the/video"/>
+            <span id="remote-link-btn"
+                style="margin-left: 1rem; margin-right: 1rem; cursor: pointer">▶️</span>
+          </div>
 
-      <p><strong>Subtitles</strong></p>
-      <input id="subtitle-input" type="file" accept=".vtt,.srt" style="min-height: 25px"/>
+          <p style="margin-bottom: 0">Input video URL from Internet (Youtube, Vimeo, etc).</p>
+        </div>
+      </div>
 
-      <hr style="width: 100%; margin-top: 1rem;"/>
+      <div class="section">
+        <div class="header">💬 Subtitles</div>
+        <input id="subtitle-input" type="file" accept=".vtt,.srt" style="width: 100%"/>
+      </div>
 
-      <p id="help-text" style="margin-bottom: 0px;">
-      </p>
-      <p><strong><span class="icon">&#128161;</span> <u>Feel like talking?</u></strong> Use whatever chat apps you prefer.</p>
-
-      <hr style="width: 100%"/>
+      <div class="section">
+        <div class="header">💕 Members (<span id="user-count-text">1</span>)</div>
+      </div>
     </div>
   </div>
   <div id="toast"></div>
@@ -300,11 +304,6 @@
 
         if (overlay)
           $('help-overlay').style.display = 'inline-block';
-
-        $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
-            <strong><u>How to distribute the video to others?</u></strong> \
-            Use <a href="https://dropbox.com" target="_blank">Dropbox</a>, \
-            <a href="https://drive.google.com" target="_blank">Google Drive</a>, etc.';
       },
 
       showMemberHelp(overlay = true) {
@@ -316,10 +315,6 @@
 
         if (overlay)
           $('help-overlay').style.display = 'inline-block';
-
-        $("help-text").innerHTML = '<span class="icon">&#129300;</span> \
-            <strong><u>Where is the video?</u></strong> \
-            Ask the owner of this room.';
       },
 
       showInvalidVideoTypeHelp() {
@@ -331,6 +326,42 @@
         $('help-overlay').style.display = 'inline-block';
       }
     };
+
+    var videoSelectionController = {
+      init() {
+        this.state = 'local';
+        this.enable = true;
+        this.local_video_btn = $('local-video-btn');
+        this.remote_video_btn = $('remote-video-btn');
+
+        this.local_video_section = $('local-video-section');
+        this.remote_video_section = $('remote-video-section');
+
+        this.local_video_btn.onclick = evt => {
+          if (this.state !== 'local' && this.enable) {
+            this.state = 'local';
+            this.local_video_btn.classList.add('active');
+            this.remote_video_btn.classList.remove('active');
+
+            this.local_video_section.style.display = "block";
+            this.remote_video_section.style.display = "none";
+          }
+        }
+
+        this.remote_video_btn.onclick = evt => {
+          if (this.state !== 'remote' && this.enable) {
+            this.state = 'remote';
+            this.local_video_btn.classList.remove('active');
+            this.remote_video_btn.classList.add('active');
+
+            this.local_video_section.style.display = "none";
+            this.remote_video_section.style.display = "block";
+          }
+        }
+      }
+    }
+
+    videoSelectionController.init();
   </script>
 
   <script>
@@ -713,7 +744,6 @@
   </script>
   <script>
     let room = window.location.pathname.split('/').pop();
-    $("room-text").innerHTML = room;
     $("room-link-share").value = window.location.protocol + "//" + window.location.host +
         "/j/" + room;
     $("copy-link-btn").onclick = e => {
@@ -774,16 +804,16 @@
       }
     }
 
-    $("youtube-link-btn").onclick = evt => {
-      let youtube_url = $("youtube-link").value;
-
-      controller.onNewURL(youtube_url, 'video/youtube');
-    }
-
     $("remote-link-btn").onclick = evt => {
       let remote_url = $("remote-link").value;
 
-      controller.onNewURL(remote_url);
+      if (remote_url.startsWith('http://www.youtube.com/')
+          || remote_url.startsWith('https://www.youtube.com/')
+          || remote_url.startsWith('http://www.youtu.be/')
+          || remote_url.startsWith('https://www.youtu.be/'))
+        controller.onNewURL(remote_url, 'video/youtube');
+      else
+        controller.onNewURL(remote_url);
     }
 
     $("subtitle-input").onchange = evt => {
@@ -826,7 +856,7 @@
       $("sidebar-open-btn").style.display = "block"; 
     };
     $("sidebar-open-btn").onclick = evt => {
-      $("sidebar").style.display = "flex";
+      $("sidebar").style.display = "block";
       $("sidebar-open-btn").style.display = "none"; 
     };
   </script>

@@ -147,20 +147,48 @@ a, a:visited {
   padding-left: 1rem;
   padding-right: 1rem;
   height: 100vh;
-  display: flex;
-  flex-direction: column;
 	overflow-y: auto;
 
   scrollbar-width: thin;
 }
 
-#logger {
-  overflow-x: hidden;
-  overflow-y: scroll;
-  flex-grow: 1;
-  min-height: 100px;
+.sidebar .title {
+  font-size: 1.5em;
+  font-weight: bold;
 
-  scrollbar-width: thin;
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.sidebar .section {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.sidebar .section .header {
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.toggle-btn {
+  display: flex;
+}
+
+.toggle-btn > div {
+  flex-grow: 1;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.toggle-btn > div.active {
+  font-weight: bold;
+  background-color: lightgrey;
+  cursor: default;
 }
 
 /* Main Page */
