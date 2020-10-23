@@ -201,6 +201,48 @@ a, a:visited {
   color: black;
 }
 
+.member {
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.member:before {
+  content: "😎";
+  opacity: 0;
+  padding-right: 0.4rem;
+}
+
+.member.owner {
+  font-weight: bold;
+}
+
+.member.owner:before {
+  opacity: 1;
+}
+
+.member:hover {
+  background-color: lightgrey;
+}
+
+.member .promote-btn {
+  display: inline-block;
+  float: right;
+  opacity: 0;
+}
+
+.member .promote-btn:before {
+  cursor: pointer;
+  content: "Promote 👑";
+}
+
+.member .promote-btn:hover {
+  opacity: 1;
+}
+
+.member.owner .promote-btn:before {
+  content: "";
+}
+
 /* Main Page */
 
 .buy_coffee {
@@ -310,7 +352,7 @@ a, a:visited {
 /* Heart animation */
 @keyframes heartfade {
   0% { opacity: 1; }
-  50% { opacity: 0 }
+  100% { opacity: 0; }
 }
 
 .heart {
@@ -346,4 +388,14 @@ a, a:visited {
 
 .eww:before {
   content: "🤢";
+}
+
+.wink {
+  z-index: 999;
+  animation: heartfade 10s linear;
+  position: absolute;
+}
+
+.wink:before {
+  content: "😉";
 }

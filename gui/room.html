@@ -132,6 +132,7 @@
 
       <div class="section">
         <div class="header">💕 Members (<span id="user-count-text">1</span>)</div>
+        <div id="users-list"></div>
       </div>
     </div>
   </div>
@@ -448,20 +449,20 @@
   <script>
     class HeartController {
       constructor() {
-        this.duration = 5000;
-        this.speed = 0.5;
+        this.duration = 9000;
+        this.speed = 2.5;
         this.hearts = [];
         this.before = Date.now();
 
         this.eventLoop = this.eventLoop.bind(this);
-        setInterval(this.eventLoop, 10);
+        setInterval(this.eventLoop, 30);
       }
 
       generateHeart(type, x, y, xBound, xStart, scale) {
         var heart = document.createElement("DIV");
         heart.setAttribute('class', type);
         document.body.appendChild(heart);
-        heart.time = this.duration + Math.random() * this.duration;
+        heart.time = this.duration;
         heart.x = x;
         heart.y = y;
         heart.bound = xBound;
@@ -635,8 +636,9 @@
               this.videoPlayer.currentTime(parseFloat(tokens[1]));
             } else if (tokens[0] === 'hash') {
               this.updateUpstreamHash(tokens[1]);
-            } else if (tokens[0] === 'user_count') {
-              $('user-count-text').innerHTML = tokens[1];
+            } else if (tokens[0] === 'user_list') {
+              $('user-count-text').innerHTML = tokens.length - 2;
+              this.renderUsersList(tokens.slice(1));
             } else if (tokens[0] === 'source') {
               if (tokens.length === 4) {
                 this.onNewURL(tokens[1], tokens[2], tokens[3]);
@@ -673,10 +675,6 @@
         });
 
         this.videoPlayer.focus();
-
-        console.log(source);
-        console.log(url);
-        console.log(this.isOwner);
 
         if (this.isOwner) {
           this.socket.send(`c|b|source|${source}|${url}|${type}`);
@@ -842,6 +840,48 @@
           let y = document.body.clientHeight - 50 - Math.random() * 50;
           heartController.generateHeart('eww', x, y, bound, start, scale);
         }
+
+        let wink_counts = (msg.match(/wink/g) || []).length;
+        for (let i = 0; i < wink_counts; ++i) {
+          let start = 1 - Math.round(Math.random()) * 2;
+          let scale = Math.random() * Math.random() * 0.8 + 2;
+          let bound = 30 + Math.random() * 50;
+          let x = Math.random() * document.body.clientWidth;
+          let y = document.body.clientHeight - 50 - Math.random() * 50;
+          heartController.generateHeart('wink', x, y, bound, start, scale);
+        }
+      }
+
+      renderUsersList(users) {
+        // Last item in the list is owner name
+        let owner_name = users[users.length - 1];
+
+        let usersListDom = $('users-list');
+        usersListDom.innerHTML = '';
+        for (let user of users.slice(0, users.length - 1)) {
+          let memberDiv = document.createElement('div');
+          memberDiv.className = 'member';
+
+          if (this.isOwner) {
+            if (user === this.username) {
+              memberDiv.className = 'member owner';
+              memberDiv.innerHTML = `${user}`;
+            } else {
+              memberDiv.innerHTML = `${user} <div class="promote-btn" onclick="controller.promote('${user}')"></div>`;
+            }
+          } else {
+            if (user == owner_name) {
+              memberDiv.className = 'member owner';
+            }
+            memberDiv.innerHTML = `${user}`;
+          }
+
+          usersListDom.appendChild(memberDiv);
+        }
+      }
+
+      promote(user) {
+        this.socket.send(`c|p|${user}`);
       }
     }
   </script>

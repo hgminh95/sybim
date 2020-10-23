@@ -57,6 +57,22 @@ class Room {
     last_active_time_ = std::chrono::steady_clock::now();
   }
 
+  void PromoteUser(std::string_view username) {
+    for (auto &[socket, member] : members_) {
+      if (member.nickname() == username && owner_ != socket) {
+        if (owner_) {
+          owner_->send("r|s|" + members_.at(owner_).nickname());
+        }
+        owner_ = socket;
+        socket->send("r|o|" + member.nickname());
+
+        BroadcastUserCount();
+
+        return;
+      }
+    }
+  }
+
   void Broadcast(WebSocket *source, std::string_view data) {
     auto tokens = str::split(data, "|");
     if (tokens.empty())
@@ -192,8 +208,23 @@ class Room {
   std::chrono::steady_clock::time_point last_timestamp_;
 
   void BroadcastUserCount() {
-    for (auto &[socket, _] : members_) {
-      socket->send("user_count|" + std::to_string(size()));
+    std::ostringstream oss;
+    for (auto &[_, member] : members_) {
+      oss << "|" << member.nickname();
+    }
+
+    auto user_list = "user_list" + oss.str();
+    std::string owner_name;
+
+    for (auto &[socket, member] : members_) {
+      if (socket == owner_)
+        owner_name = member.nickname();
+    }
+
+    user_list += "|" + owner_name;
+
+    for (auto &[socket, member] : members_) {
+      socket->send(user_list);
     }
   }
 };
@@ -250,6 +281,8 @@ class SyncHandler : public WebSocket::Handler {
       BroadcastCommand(player_group, connection, command.substr(4));
     } else if (str::has_prefix(command, "c|h|")) {
       UpdateMD5Hash(player_group, connection, command.substr(4));
+    } else if (str::has_prefix(command, "c|p|")) {
+      PromoteOwner(player_group, connection, command.substr(4));
     } else if (command == "c|rs") {
       RequestForStatus(player_group, connection);
     } else {
@@ -395,6 +428,16 @@ class SyncHandler : public WebSocket::Handler {
       group->Broadcast(socket, cmd);
       group->set_md5_hash(std::string{cmd.substr(5)});
     }
+  }
+
+  void PromoteOwner(Room *room, WebSocket *socket, std::string_view cmd) {
+    if (!room)
+      return;
+
+    if (socket != room->owner())
+      return;
+
+    room->PromoteUser(cmd);
   }
 
   void RequestForStatus(Room *group, WebSocket *socket) {
