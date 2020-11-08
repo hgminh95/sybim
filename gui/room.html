@@ -520,47 +520,31 @@
             if (!this.isConnected) {
               $("reconnect-overlay").style.display = "block";
             }
-          }, 2000);
+          }, 5000);
         }
 
         this.room = room;
-        this.socket = new WebSocket(getWSAddr());
-        this.socket.onopen = event => {
+        this.socket = new SybimSocket(getWSAddr(), room,
+            localStorage.getItem('token'),
+            localStorage.getItem('nickname'));
+
+        this.socket.onopen = () => {
+          console.log("connected");
           this.isConnected = true;
           $("reconnect-overlay").style.display = "none";
-          this.socket.send(`r|j|${room}|${localStorage.getItem('token')}|${localStorage.getItem('nickname')}`);
-          this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
           this.insertNewChat('sybim', 'Welcome! Have Fun (:');
         };
 
-        this.socket.onmessage = event => {
-          if (event.data.text) {
-            event.data.text().then(msg => this.onMsgRecv(msg));
-          } else {
-            this.onMsgRecv(event.data);
-          }
-        }
-
-        this.socket.onerror = event => {
-          this.isConnected = false;
-
-          clearTimeout(this.retryTimer);
-          clearInterval(this.heartbeatTimer);
-          this.retryTimer = setTimeout(() => this.reconnect(), 5000);
+        this.socket.onmessage = msg => {
+          this.onMsgRecv(msg);
         };
 
-        this.socket.onclose = event => {
+        this.socket.onunstable = () => {
           this.isConnected = false;
           $("reconnect-overlay").style.display = "block";
-
-          clearTimeout(this.retryTimer);
-          clearInterval(this.heartbeatTimer);
-          this.retryTimer = setTimeout(() => this.reconnect(), 5000);
         };
-      }
 
-      reconnect() {
-        this.connectToRoom(this.room);
+        this.socket.connect();
       }
 
       onBecomeOwner() {
