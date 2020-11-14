@@ -16,6 +16,8 @@
 
 using namespace seasocks;
 
+constexpr char SEPARATOR[] = "|";
+
 class Room {
  public:
   Room(std::string_view name, bool enable_chat, std::string_view password)
@@ -74,7 +76,7 @@ class Room {
   }
 
   void Broadcast(WebSocket *source, std::string_view data) {
-    auto tokens = str::split(data, "|");
+    auto tokens = str::split(data, SEPARATOR);
     if (tokens.empty())
       return;
 
@@ -333,7 +335,7 @@ class SyncHandler : public WebSocket::Handler {
 
   void CreateRoom(WebSocket *socket, std::string_view room_info) {
     // Room Info must follow this format: "<enable_chat>:<password>"
-    auto tokens = str::split(room_info, "|");
+    auto tokens = str::split(room_info, SEPARATOR);
 
     if (tokens.size() != 2) {
       LOG(ERROR) << "Receive invalid create room request: " << room_info;
@@ -349,12 +351,12 @@ class SyncHandler : public WebSocket::Handler {
 
     LOG(INFO) << "Create new room " << group_name;
 
-    socket->send(group_name + "|" + player_group->token());
+    socket->send(group_name + SEPARATOR + player_group->token());
   }
 
   void AccessRoom(WebSocket *socket, std::string_view room_access) {
     // <room_name>:<password>
-    auto tokens = str::split(room_access, "|");
+    auto tokens = str::split(room_access, SEPARATOR);
 
     if (tokens.size() != 2) {
       LOG(ERROR) << "Receive invalid access room request: " << room_access;
@@ -379,7 +381,7 @@ class SyncHandler : public WebSocket::Handler {
     if (group)
       group->RemoveMember(socket);
 
-    auto tokens = str::split(join_info, "|");
+    auto tokens = str::split(join_info, SEPARATOR);
 
     if (tokens.size() != 3) {
       LOG(ERROR) << "Receive invalid join room request: " << join_info
