@@ -9,15 +9,14 @@
   <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
   <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
   <link rel="manifest" href="/static/site.webmanifest">
-
-  <link href="/static/third_party/video-js.css" rel="stylesheet" />
 </head>
 
 <body>
   <div class="row">
     <div class="video-container">
-      <video-js id="video-player" class="vjs-default-skin vjs-big-play-centered">
-      </video-js>
+      <video id="video-player" preload="auto" class="real-player">
+        <track id="subtitle" kind="subtitles"/>
+      </video>
 
       <div id="help-overlay">
         <div class="center-screen" style="color: white">
@@ -73,14 +72,14 @@
 
     </div>
 
-    <h2 id="sidebar-open-btn" class="icon"
+    <h2 id="sidebar-open-btn" class="sybim-icon"
         style="cursor: pointer; position: absolute; top: 0; right: 1rem; display: none; color: white; z-index: 4">
       &#9776;
     </h2>
     <div id="sidebar" class="sidebar">
       <div class="title">
         &#127910; <a href="/">SyBim</a>
-        <span id="sidebar-close-btn" class="icon" style="float: right; cursor: pointer">
+        <span id="sidebar-close-btn" class="sybim-icon" style="float: right; cursor: pointer">
           &#x25B6;
         </span>
       </div>
@@ -92,7 +91,7 @@
         <div style="display: flex">
           <input id="room-link-share" readonly style="flex-grow: 1; font-family: monospace"/>
           <span id="copy-link-btn" style="margin-left: 1rem; margin-right: 1rem;">
-            <span class="icon" style="position: relative; top: -.25em; left: -.125em; cursor: pointer">
+            <span class="sybim-icon" style="position: relative; top: -.25em; left: -.125em; cursor: pointer">
               &#128196;<span style="position: absolute; top: .25em; left: .25em">&#128196;</span>
             </span>
           </span>
@@ -140,112 +139,7 @@
 
   <script src="/static/third_party/srt_webvtt.js"></script>
   <script src="/static/third_party/spark-md5.min.js"></script>
-  <script src="/static/third_party/video.js"></script>
-  <script src="/static/third_party/videojs.youtube.min.js"></script>
   <script src="/static/base.js"></script>
-  <script>
-    /* Taken from video.js source code */
-
-    /**
-     * Returns whether an object is `Promise`-like (i.e. has a `then` method).
-     *
-     * @param  {Object}  value
-     *         An object that may or may not be `Promise`-like.
-     *
-     * @return {boolean}
-     *         Whether or not the object is `Promise`-like.
-     */
-    function isPromise(value) {
-      return value !== undefined && value !== null && typeof value.then === 'function';
-    }
-    
-    /**
-     * Silence a Promise-like object.
-     *
-     * This is useful for avoiding non-harmful, but potentially confusing "uncaught
-     * play promise" rejection error messages.
-     *
-     * @param  {Object} value
-     *         An object that may or may not be `Promise`-like.
-     */
-    function silencePromise(value) {
-      if (isPromise(value)) {
-        value.then(null, (e) => {});
-      }
-    }
-
-    function isSingleLeftClick(event) {
-      // Note: if you create something draggable, be sure to
-      // call it on both `mousedown` and `mousemove` event,
-      // otherwise `mousedown` should be enough for a button
-    
-      if (event.button === undefined && event.buttons === undefined) {
-        // Why do we need `buttons` ?
-        // Because, middle mouse sometimes have this:
-        // e.button === 0 and e.buttons === 4
-        // Furthermore, we want to prevent combination click, something like
-        // HOLD middlemouse then left click, that would be
-        // e.button === 0, e.buttons === 5
-        // just `button` is not gonna work
-    
-        // Alright, then what this block does ?
-        // this is for chrome `simulate mobile devices`
-        // I want to support this as well
-    
-        return true;
-      }
-    
-      if (event.button === 0 && event.buttons === undefined) {
-        // Touch screen, sometimes on some specific device, `buttons`
-        // doesn't have anything (safari on ios, blackberry...)
-    
-        return true;
-      }
-    
-      // `mouseup` event on a single left click has
-      // `button` and `buttons` equal to 0
-      if (event.type === 'mouseup' && event.button === 0 &&
-          event.buttons === 0) {
-        return true;
-      }
-    
-      if (event.button !== 0 || event.buttons !== 1) {
-        // This is the reason we have those if else block above
-        // if any special case we can catch and let it slide
-        // we do it above, when get to here, this definitely
-        // is-not-left-click
-    
-        return false;
-      }
-    
-      return true;
-    } 
-
-    /* Silly hack to disable the click to play event */
-    let PlayerComponent = videojs.getComponent('Player');
-    PlayerComponent.prototype.handleTechClick_ = function(event) {
-      if (!isSingleLeftClick(event)) {
-        return;
-      }
-
-      // When controls are disabled a click should not toggle playback because
-      // the click is considered a control
-      if (!this.controls_ || !this.isOwner) {
-        return;
-      }
-
-      if (this.paused()) {
-        silencePromise(this.play());
-      } else {
-        this.pause();
-      }
-    };
-
-    let FullscreenToggle = videojs.getComponent('FullscreenToggle');
-    FullscreenToggle.prototype.handleClick = function(event) {
-      toggleFullScreen(document.body);
-    }
-  </script>
   <script>
     let hashCounter = 0;
     function calculateMD5Hash(file, onFinish) {
@@ -368,7 +262,7 @@
             return;
 
           let file = evt.target.files[0];
-          let canPlay = videoPlayer.canPlayType(file.type);
+          let canPlay = 'yes'; // videoPlayer.canPlayType(file.type);
           if (canPlay === '' || canPlay === 'no') {
             toast(`Cannot play selected video`);
             // helpController.showInvalidVideoTypeHelp(file.type);
@@ -551,16 +445,8 @@
         this.insertNewChat('sybim', 'You are the owner');
         toast("You are the owner");
         this.isOwner = true;
-        this.videoPlayer.isOwner = true;
+        this.videoPlayer.EnableControls();
         helpController.showOwnerHelp(!this.hasVideo);
-
-        let controlBar = this.videoPlayer.getChild('ControlBar');
-        controlBar.playToggle.enable();
-        controlBar.progressControl.enable();
-
-        let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
-        bigPlayButton.enable();
-        bigPlayButton.show();
 
         videoSelectionController.enable();
       }
@@ -568,16 +454,8 @@
       onBecomeMember() {
         toast("Joined");
         this.isOwner = false;
-        this.videoPlayer.isOwner = false;
+        this.videoPlayer.DisableControls();
         helpController.showMemberHelp(!this.hasVideo);
-
-        let controlBar = this.videoPlayer.getChild('ControlBar');
-        controlBar.playToggle.disable();
-        controlBar.progressControl.disable();
-
-        let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
-        bigPlayButton.disable();
-        bigPlayButton.hide();
 
         videoSelectionController.disable();
       }
@@ -611,13 +489,13 @@
               return;
 
             if (tokens[0] === 'play') {
-              this.videoPlayer.currentTime(parseFloat(tokens[1]));
-              this.videoPlayer.play();
+              this.videoPlayer.SeekTo(parseFloat(tokens[1]));
+              this.videoPlayer.Play();
             } else if (tokens[0] === 'pause') {
-              this.videoPlayer.currentTime(parseFloat(tokens[1]));
-              this.videoPlayer.pause();
+              this.videoPlayer.SeekTo(parseFloat(tokens[1]));
+              this.videoPlayer.Pause();
             } else if (tokens[0] === 'seek') {
-              this.videoPlayer.currentTime(parseFloat(tokens[1]));
+              this.videoPlayer.SeekTo(parseFloat(tokens[1]));
             } else if (tokens[0] === 'hash') {
               this.updateUpstreamHash(tokens[1]);
             } else if (tokens[0] === 'user_list') {
@@ -649,17 +527,7 @@
 
         this.hasVideo = true;
 
-        this.videoPlayer.src({src: url, type: type});
-        this.videoPlayer.ready(() => {
-          if (this.isOwner) {
-            let bigPlayButton = this.videoPlayer.getChild('BigPlayButton');
-            bigPlayButton.show();
-          } else {
-            this.requestStatus();
-          }
-        });
-
-        this.videoPlayer.focus();
+        this.videoPlayer.SetSource('html5', url);
 
         if (this.isOwner) {
           this.socket.send(`c|b|source|${source}|${url}|${type}`);
@@ -670,55 +538,16 @@
 
       attachVideoPlayer(videoPlayer) {
         this.videoPlayer = videoPlayer;
-        videoPlayer.on("pause", e => {
-          if (!videoPlayer.seeking()) {
-            if (this.isOwner) {
-              this.socket.send(`c|b|pause|${videoPlayer.currentTime()}`);
-            }
-          }
-        });
 
-        videoPlayer.on("play", e => {
+        this.videoPlayer.RegisterSyncEventCallback((status, time) => {
           if (this.isOwner) {
-            this.socket.send(`c|b|play|${videoPlayer.currentTime()}`);
+            this.socket.send(`c|b|${status}|${time}`);
           }
         });
 
-        videoPlayer.on("keydown", e => {
-          if (e.keyCode === 38) { // Up Arrow
-            this.videoPlayer.volume(this.videoPlayer.volume() + 0.1);
-          }
-
-          if (e.keyCode === 40) { // Down Arrow
-            this.videoPlayer.volume(this.videoPlayer.volume() - 0.1);
-          }
-
-          if (!this.isOwner)
-            return;
-
-          if (e.keyCode === 32) { // Space
-            if (this.videoPlayer.paused())
-              this.videoPlayer.play();
-            else
-              this.videoPlayer.pause();
-          }
-
-          if (e.keyCode === 39) { // Right Arrow
-            let seekTime = this.videoPlayer.currentTime() + 5;
-            this.videoPlayer.currentTime(seekTime);
-            if (this.videoPlayer.paused())
-              this.socket.send(`c|b|pause|${seekTime}`);
-            else
-              this.socket.send(`c|b|play|${seekTime}`);
-          }
-
-          if (e.keyCode === 37) { // Left Arrow
-            let seekTime = this.videoPlayer.currentTime() - 5;
-            this.videoPlayer.currentTime(seekTime);
-            if (this.videoPlayer.paused())
-              this.socket.send(`c|b|pause|${seekTime}`);
-            else
-              this.socket.send(`c|b|play|${seekTime}`);
+        this.videoPlayer.RegisterOnReadyCallback(() => {
+          if (!this.isOwner) {
+            this.requestStatus();
           }
         });
       }
@@ -881,34 +710,8 @@
       toast('Link Copied');
     }
 
-    let videoPlayer = videojs('video-player', {
-      controls: true,
-      autoplay: false,
-      preload: 'auto',
-      techOrder: ["youtube", "html5"],
-      youtube: {
-        controls: 1,
-        modestbranding: 1,
-        disablekb: 1,
-        cc_load_policy: 1,
-        cc_lang_pref: 'en',
-        fs: 0,
-      },
-      children: {
-        bigPlayButton: false,
-        textTrackDisplay: true,
-        controlBar: {
-          playToggle: true,
-          currentTimeDisplay: true,
-          timeDivider: true,
-          durationDisplay: true,
-          progressControl: true,
-          remainingTimeDisplay: true,
-          subtitlesButton: true,
-          pictureInPictureToggle: false,
-          fullscreenToggle: true,
-        }
-      }
+    let videoPlayer = new SybimVideoPlayer({
+      selector: '#video-player'
     });
 
     let controller = new ApplicationController;
@@ -926,18 +729,8 @@
       vttConverter
           .getURL()
           .then(url => {
-            videoPlayer.addRemoteTextTrack({
-              kind: 'captions',
-              src: url,
-              language: 'n/a',
-              label: 'default',
-            }, false);
-
-            let tracks = videoPlayer.textTracks();
-            for (let i = 0; i < tracks.length; i += 1) {
-              tracks[i].mode = 'disabled';
-            }
-            tracks[tracks.length - 1].mode = 'showing';
+            $('subtitle').src = url;
+            videoPlayer.real_player.html5_player.textTracks[0].mode = 'showing';
 
             toast('New subtitle loaded');
           })
@@ -955,12 +748,12 @@
     }
 
     $("sidebar-close-btn").onclick = evt => {
-      $("sidebar").style.display = "none"; 
-      $("sidebar-open-btn").style.display = "block"; 
+      $("sidebar").style.display = "none";
+      $("sidebar-open-btn").style.display = "block";
     };
     $("sidebar-open-btn").onclick = evt => {
       $("sidebar").style.display = "block";
-      $("sidebar-open-btn").style.display = "none"; 
+      $("sidebar-open-btn").style.display = "none";
     };
   </script>
 
