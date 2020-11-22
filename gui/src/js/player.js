@@ -1,144 +1,3 @@
-let $ = id => document.getElementById(id);
-
-let g_toasting = false;
-
-function toast(msg) {
-  if (!g_toasting) {  /* handle multiple toast called, probably not perfect */
-    g_toasting = true;
-
-    let x = $("toast");
-    x.innerHTML = msg;
-    x.className = "show";
-    setTimeout(function() {
-      x.className = x.className.replace("show", "");
-      g_toasting = false;
-    }, 3000);
-  } else {
-    setTimeout(() => toast(msg), 1000);
-  }
-}
-
-
-function generateRandomLightColor() {
-  var letters = 'BCDEF'.split('');
-  var color = '#';
-  for (var i = 0; i < 6; i++ ) {
-    color += letters[Math.floor(Math.random() * letters.length)];
-  }
-  return color;
-}
-
-function getWSAddr() {
-  let loc = window.location, new_uri;
-  if (loc.protocol === "https:")
-    new_uri = "wss:";
-  else
-    new_uri = "ws:";
-  new_uri += "//" + loc.host + "/ws";
-
-  return new_uri;
-}
-
-function request_ws(cmd, success_callback, error_callback) {
-  socket = new WebSocket(getWSAddr());
-
-  socket.onopen = event => {
-    socket.send(cmd);
-  }
-
-  socket.onmessage = event => {
-    if (event.data.text) {
-      event.data.text().then(msg => success_callback(msg));
-    } else {
-      success_callback(event.data);
-    }
-  };
-
-  socket.onerror = event => {
-    error_callback && error_callback(event);
-  };
-}
-
-
-/**
- * Custom websocket that can handle unstable connection.
- */
-class SybimSocket {
-  constructor(address, room, token, nickname) {
-    this.address = address;
-    this.room = room;
-    this.token = token;
-    this.nickname = nickname;
-
-    this.heartbeatTimer = null;
-    this.retryTimer = null;
-
-    this.connected = false;
-    this.failureCount = 0;
-  }
-
-  connect() {
-    this.socket = new WebSocket(this.address);
-
-    this.socket.onopen = event => {
-      this.socket.send(`r|j|${this.room}|${this.token}|${this.nickname}`);
-      this.heartbeatTimer = setInterval(() => this.socket.send("hb"), 15000);
-    }
-
-    this.socket.onmessage = event => {
-      if (event.data.text) {
-        event.data.text().then(msg => this.handleMsg(msg));
-      } else {
-        this.handleMsg(event.data);
-      }
-    }
-
-    this.socket.onerror = event => {
-      clearTimeout(this.retryTimer);
-      clearInterval(this.heartbeatTimer);
-
-      this.failureCount += 1;
-      if (this.failureCount > 5) {
-        this.onunstable && this.onunstable();
-        this.failureCount = 0;
-      }
-
-      this.retryTimer = setTimeout(() => this.connect(), 500);
-    }
-
-    this.socket.onclose = event => {
-      clearTimeout(this.retryTimer);
-      clearInterval(this.heartbeatTimer);
-
-      this.failureCount += 1;
-      if (this.failureCount > 5) {
-        this.onunstable && this.onunstable();
-        this.failureCount = 0;
-      }
-
-      this.retryTimer = setTimeout(() => this.connect(), 500);
-    }
-  }
-
-  handleMsg(msg) {
-    if (msg === "hb")
-      return;
-
-    if (!this.connected) {
-      this.connected = true;
-      this.failureCount = 0;
-
-      this.onopen && this.onopen();
-    }
-
-    this.onmessage && this.onmessage(msg);
-  }
-
-  send(msg) {
-    this.socket.send(msg);
-  }
-}
-
 // -------------------------------------------------------------------
 // SybimVideoPlayer - inspired by vlitejs
 // -------------------------------------------------------------------
@@ -151,6 +10,7 @@ const Svg = {
   pause: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M4 4h10v24H4zm14 0h10v24H18z"/></svg>`,
   fullscreen: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M27.414 24.586L22.828 20 20 22.828l4.586 4.586L20 32h12V20zM12 0H0v12l4.586-4.586 4.543 4.539 2.828-2.828-4.543-4.539zm0 22.828L9.172 20l-4.586 4.586L0 20v12h12l-4.586-4.586zM32 0H20l4.586 4.586-4.543 4.539 2.828 2.828 4.543-4.539L32 12z"/></svg>`,
   fullscreenExit: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32"><path d="M24.586 27.414L29.172 32 32 29.172l-4.586-4.586L32 20H20v12zM0 12h12V0L7.414 4.586 2.875.043.047 2.871l4.539 4.543zm0 17.172L2.828 32l4.586-4.586L12 32V20H0l4.586 4.586zM20 12h12l-4.586-4.586 4.547-4.543L29.133.043l-4.547 4.543L20 0z"/></svg>`,
+  loop: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24.547 24.547"><path d="M5.285,24.082c-0.111,0-0.217-0.041-0.298-0.12l-4.866-4.879c-0.161-0.159-0.161-0.422,0-0.585 l4.866-4.885c0.119-0.117,0.298-0.155,0.454-0.089c0.156,0.06,0.256,0.215,0.256,0.384v3.021h13.335c0.369,0,0.67-0.301,0.67-0.668 v-3.4c0-0.111,0.043-0.216,0.119-0.295l3.256-3.269c0.118-0.118,0.3-0.156,0.454-0.091c0.157,0.066,0.258,0.22,0.258,0.386v7.391 c0,2.64-1.395,4.034-4.033,4.034H5.698v2.652c0,0.167-0.1,0.318-0.256,0.38C5.392,24.07,5.335,24.082,5.285,24.082z"/> <path d="M1.171,15.378c-0.055,0-0.108-0.012-0.159-0.033c-0.156-0.063-0.258-0.213-0.258-0.383v-7.39 c0-2.641,1.392-4.033,4.033-4.033h14.064V0.88c0-0.165,0.101-0.317,0.256-0.385c0.158-0.061,0.335-0.031,0.455,0.092l4.864,4.875 c0.162,0.162,0.162,0.427,0,0.588l-4.864,4.882c-0.119,0.121-0.296,0.158-0.454,0.091c-0.155-0.063-0.256-0.216-0.256-0.386V7.623 H5.508c-0.367,0-0.664,0.3-0.664,0.669v3.401c0,0.11-0.043,0.213-0.124,0.296l-3.258,3.265C1.385,15.334,1.281,15.378,1.171,15.378 z"/> </svg>`,
 };
 
 let ThirdParty = {
@@ -169,7 +29,39 @@ let ThirdParty = {
       firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
     }
   },
+
+  is_vimeo_loaded: false,
+  LoadVimeoAPI: function(OnReady) {
+    if (ThirdParty.is_vimeo_loaded) {
+      OnReady();
+    } else {
+      var tag = document.createElement('script');
+      tag.src = 'https://player.vimeo.com/api/player.js';
+      tag.addEventListener('load', e => {
+        OnReady();
+      });
+
+      var firstScriptTag = document.getElementsByTagName('script')[0];
+      firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+    }
+  }
 };
+
+function SelectPlayer(url) {
+  if (url.startsWith('http://youtube.com')
+      || url.startsWith('https://youtube.com')
+      || url.startsWith('http://www.youtube.com')
+      || url.startsWith('https://www.youtube.com'))
+    return 'youtube';
+
+  if (url.startsWith('http://vimeo.com')
+      || url.startsWith('https://vimeo.com')
+      || url.startsWith('http://www.vimeo.com')
+      || url.startsWith('https://www.vimeo.com'))
+    return 'vimeo';
+
+  return 'html5';
+}
 
 class SybimVideoPlayer {
   constructor({selector, options}) {
@@ -206,11 +98,15 @@ class SybimVideoPlayer {
     this.player.parentNode.insertBefore(wrapper, this.player);
     wrapper.appendChild(this.player);
     this.wrapperPlayer = this.player.parentNode;
+    this.player.setAttribute('data-v-toggle-play-pause', '');
 
     const htmlControls = `
-      ${!this.supportTouch
-        ? `<div class="v-overlayLeft" data-v-fast-forward data-direction="left"></div><div class="v-overlayRight" data-v-fast-forward data-direction="right"></div>`
-        : ``}
+      <div id="div_player" class="real-player"></div>
+      <div class="overlay" data-v-toggle-play-pause>
+        ${!this.supportTouch
+          ? `<div class="overlay-left" data-v-fast-forward data-direction="left"></div><div class="overlay-right" data-v-fast-forward data-direction="right"></div>`
+          : ``}
+      </div>
       <div class="loader">
         <div class="loader-content">
           <div class="loader-bounce-1"></div>
@@ -251,6 +147,10 @@ class SybimVideoPlayer {
             <span class="current-time">00:00</span>&nbsp;/&nbsp;<span class="duration"></span>
           </div>
 
+          <div class="loop">
+            <span class="icon">${Svg.loop}</span>
+          </div>
+
           <div class="fullscreen">
             <span class="icon fullscreen-icon">${Svg.fullscreen}</span>
             <span class="icon shrink-icon">${Svg.fullscreenExit}</span>
@@ -264,13 +164,17 @@ class SybimVideoPlayer {
 
   BindEvents() {
     this.OnChangeProgressBar = e => {
+      e.preventDefault();
       this.SeekTo((e.target.value * this.real_player.duration()) / 100, true);
     }
     this.wrapperPlayer.querySelector('.progress-input').addEventListener('change', this.OnChangeProgressBar, false);
 
     const play_pause_btn = this.wrapperPlayer.querySelectorAll('[data-v-toggle-play-pause]');
     play_pause_btn.forEach(button => {
-      button.addEventListener('click', (e) => this.TogglePlayPause(true), false);
+      button.addEventListener('click', (e) => {
+        e.preventDefault();
+        this.TogglePlayPause(true)
+      }, false);
     });
 
     this.OnClickToggleVolume = e => {
@@ -280,12 +184,24 @@ class SybimVideoPlayer {
     this.wrapperPlayer.querySelector('.volume').addEventListener('click', this.OnClickToggleVolume, false);
 
     this.wrapperPlayer.querySelector('.volume-slider > input').addEventListener('change', (e) => {
+      e.preventDefault();
       this.real_player.SetVolumeImpl(e.target.value);
     }, false);
 
-    this.wrapperPlayer.querySelector('.fullscreen').addEventListener('click', () => this.ToggleFullScreen(), false);
+    this.wrapperPlayer.querySelector('.loop').addEventListener('click', e => {
+      e.preventDefault();
+      this.ToggleLoop(true);
+    }, false);
 
-    this.wrapperPlayer.addEventListener('keyup', (e) => this.OnKeyUp(e), false);
+    this.wrapperPlayer.querySelector('.fullscreen').addEventListener('click', e => {
+      e.preventDefault();
+      this.ToggleFullScreen();
+    }, false);
+
+    this.wrapperPlayer.addEventListener('keyup', (e) => {
+      e.preventDefault();
+      this.OnKeyUp(e);
+    }, false);
 
     this.OnMousemoveEvent = e => {
       this.OnMouseMove(e);
@@ -306,10 +222,17 @@ class SybimVideoPlayer {
 
   SetSource(player_type, source) {
     this.ResetGuiState();
+
+    if (this.real_player != null) {
+      this.real_player.Destroy();
+    }
+
     if (player_type === 'html5') {
       this.real_player = new Html5Player(this, source);
     } else if (player_type === 'youtube') {
       this.real_player = new YoutubePlayer(this, source);
+    } else if (player_type === 'vimeo') {
+      this.real_player = new VimeoPlayer(this, source);
     } else {
       console.warn('[sybim:video-player] Unknown player_type ' + player_type);
     }
@@ -325,10 +248,6 @@ class SybimVideoPlayer {
     this.UpdateLoadingStatus(false);
   }
 
-  RegisterEvent(event_name, callback) {
-    this.callbacks[event_name].push(callback);
-  }
-
   /**
    * Check if browser support touch event.
    */
@@ -342,6 +261,7 @@ class SybimVideoPlayer {
     this.wrapperPlayer.querySelector('.progress-bar').classList.add('disabled');
     this.wrapperPlayer.querySelector('.play-pause-btn').classList.add('disabled');
     this.wrapperPlayer.querySelector('.big-play-btn').classList.add('disabled');
+    this.wrapperPlayer.querySelector('.loop').classList.add('disabled');
   }
 
   EnableControls() {
@@ -350,6 +270,7 @@ class SybimVideoPlayer {
     this.wrapperPlayer.querySelector('.progress-bar').classList.remove('disabled');
     this.wrapperPlayer.querySelector('.play-pause-btn').classList.remove('disabled');
     this.wrapperPlayer.querySelector('.big-play-btn').classList.remove('disabled');
+    this.wrapperPlayer.querySelector('.loop').classList.remove('disabled');
   }
 
   RegisterOnReadyCallback(callback) {
@@ -373,7 +294,7 @@ class SybimVideoPlayer {
   }
 
   UpdateThumbnail(thumbnail) {
-    this.wrapperPlayer.querySelector('.thumbnail').style.background = `${thumbnail}`;
+    this.wrapperPlayer.querySelector('.thumbnail').style.backgroundImage = `${thumbnail}`;
   }
 
   Play(is_human) {
@@ -441,6 +362,32 @@ class SybimVideoPlayer {
       this.UnMute()
     } else {
       this.Mute();
+    }
+  }
+
+  ToggleLoop(is_human) {
+    const loop_btn = this.wrapperPlayer.querySelector('.loop');
+
+    if (loop_btn.classList.contains('looped')) {
+      this.SetLoop(false, is_human);
+    } else {
+      this.SetLoop(true, is_human);
+    }
+  }
+
+  SetLoop(loop, is_human) {
+    if (this.controls_enable || !is_human) {
+      this.real_player.SetLoopImpl(loop);
+
+      const loop_btn = this.wrapperPlayer.querySelector('.loop');
+
+      if (loop) {
+        loop_btn.classList.add('looped');
+        this.EmitSyncEvent('loop', '1');
+      } else {
+        loop_btn.classList.remove('looped');
+        this.EmitSyncEvent('loop', '0');
+      }
     }
   }
 
@@ -541,217 +488,5 @@ class SybimVideoPlayer {
 		timeInString += sec
 
 		return timeInString;
-  }
-}
-
-class Html5Player {
-  constructor(sb_player, source) {
-    this.html5_player = sb_player.player;
-    this.sb_player = sb_player;
-
-    this.html5_player.src = source;
-
-    this.WaitUntilVideoIsReady().then(() => { this.sb_player.OnPlayerReady(); } );
-
-    this.BindEvents();
-
-    this.sb_player.UpdateThumbnail('rgba(76, 175, 80, 0)');
-  }
-
-  WaitUntilVideoIsReady() {
-    return new window.Promise((resolve, reject) => {
-      if (typeof this.html5_player.duration === 'number' && isNaN(this.html5_player.duration) === false) {
-        resolve();
-      } else {
-        this.onDurationChange = () => {
-          this.html5_player.removeEventListener('durationchange', this.onDurationChange);
-          this.html5_player.removeEventListener('error', this.onError);
-
-          resolve();
-        }
-
-        this.onError = (error) => {
-          this.html5_player.removeEventListener('error', this.onError);
-          this.html5_player.removeEventListener('durationchange', this.onDurationChange);
-
-          reject(error);
-        }
-
-        this.html5_player.addEventListener('durationchange', this.onDurationChange, false);
-        this.html5_player.addEventListener('error', this.onError, false);
-      }
-    });
-  }
-
-  BindEvents() {
-    this.html5_player.addEventListener('durationchange', (e) => this.sb_player.OnDurationChange(this.duration()), false);
-    this.html5_player.addEventListener('timeupdate', (e) => this.sb_player.OnCurrentTimeChange(), false);
-    this.html5_player.addEventListener('playing', (e) => this.sb_player.UpdateLoadingStatus(false), false);
-    this.html5_player.addEventListener('play', (e) => {
-      this.sb_player.EmitSyncEvent('play', this.current_time());
-    }, false);
-    this.html5_player.addEventListener('pause', (e) => {
-      this.sb_player.EmitSyncEvent('pause', this.current_time());
-      this.sb_player.OnStatusChanged({ is_paused: true });
-    }, false);
-    this.html5_player.addEventListener('waiting', (e) => this.sb_player.UpdateLoadingStatus(true), false);
-    this.html5_player.addEventListener('seeking', (e) => this.sb_player.UpdateLoadingStatus(true), false);
-    this.html5_player.addEventListener('seeked', (e) => {
-      if (this.html5_player.paused)
-        this.sb_player.EmitSyncEvent('pause', this.current_time());
-      else
-        this.sb_player.EmitSyncEvent('play', this.current_time());
-
-      this.sb_player.UpdateLoadingStatus(false);
-    }, false);
-  }
-
-  PlayImpl() {
-    this.html5_player.play();
-  }
-
-  PauseImpl() {
-    this.html5_player.pause();
-  }
-
-  MuteImpl() {
-    this.html5_player.muted = true;
-    this.html5_player.setAttribute('muted', '');
-  }
-
-  UnMuteImpl() {
-    this.html5_player.muted = false;
-    this.html5_player.removeAttribute('muted');
-  }
-
-  SetVolumeImpl(volume) {
-    this.html5_player.volume = volume;
-  }
-
-  SeekToImpl(new_time) {
-    this.html5_player.currentTime = new_time;
-  }
-
-  duration() {
-    return this.html5_player.duration;
-  }
-
-  current_time() {
-    return this.html5_player.currentTime;
-  }
-
-  volume() {
-    return this.html5_player.volume;
-  }
-}
-
-class YoutubePlayer {
-  constructor(sb_player, source) {
-    this.sb_player = sb_player;
-
-    ThirdParty.LoadYoutubeAPI(() => {
-      let video_info = this.ExtractYoutubeUrlInfo(source);
-      this.youtube_player = new window.YT.Player('player', {
-        videoId: video_info.video_id,
-        height: '100%',
-        width: '100%',
-        playerVars: {
-          showinfo: 0,
-          modestbranding: 0,
-          autohide: 1,
-          rel: 0,
-          fs: 0,
-          playsinline: 1,
-          wmode: 'transparent',
-          controls: 0
-        },
-        events: {
-          onReady: data => this.OnYoutubeReady(data),
-          onStateChange: state => this.OnYoutubeStateChange(state),
-        }
-      });
-
-      this.sb_player.UpdateThumbnail('url(https://img.youtube.com/vi/' + video_info.video_id + '/0.jpg)');
-    });
-  }
-
-  ExtractYoutubeUrlInfo(url) {
-    var result = {
-      video_id: null
-    };
-
-    var regex = /^.*(youtu.be\/|v\/|u\/\w\/|embed\/|watch\?v=|\&v=)([^#\&\?]*).*/;
-    var match = url.match(regex);
-
-    if (match && match[2].length === 11) {
-      result.video_id = match[2];
-    }
-
-    var regPlaylist = /[?&]list=([^#\&\?]+)/;
-    match = url.match(regPlaylist);
-
-    if(match && match[1]) {
-      result.list_id = match[1];
-    }
-
-    return result;
-  }
-
-  OnYoutubeReady(data) {
-    this.sb_player.OnPlayerReady();
-  }
-
-  OnYoutubeStateChange(e) {
-    switch (e.data) {
-      case window.YT.PlayerState.UNSTARTED:
-        this.sb_player.OnDurationChange();
-        break;
-      case window.YT.PlayerState.ENDED:
-        break;
-      case window.YT.PlayerState.PLAYING:
-        this.sb_player.UpdateLoadingStatus(false);
-
-        if (this.time_timer == null) {
-          this.time_timer = setInterval(() => {
-            this.sb_player.OnCurrentTimeChange();
-          }, 300);
-        }
-        break;
-      case window.YT.PlayerState.PAUSED:
-        break;
-      case window.YT.PlayerState.BUFFERING:
-        this.sb_player.UpdateLoadingStatus(false);
-        break;
-      case window.YT.PlayerState.CUED:
-        break;
-    }
-  }
-
-  SeekToImpl(new_time) {
-    this.youtube_player.seekTo(new_time);
-  }
-
-  current_time() {
-    return this.youtube_player.getCurrentTime();
-  }
-
-  duration() {
-    return this.youtube_player.getDuration();
-  }
-
-  PlayImpl() {
-    this.youtube_player.playVideo();
-  }
-
-  PauseImpl() {
-    this.youtube_player.pauseVideo();
-  }
-
-  MuteImpl() {
-    this.youtube_player.mute();
-  }
-
-  UnMuteImpl() {
-    this.youtube_player.unMute();
   }
 }

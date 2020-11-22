@@ -94,6 +94,8 @@ class Room {
         } else if (tokens[0] == "seek") {
           last_video_timestamp_ = timestamp.value();
           last_timestamp_ = std::chrono::steady_clock::now();
+        } else if (tokens[0] == "loop") {
+          is_loop_ = tokens[1] == "1";
         }
       }
     }
@@ -112,6 +114,9 @@ class Room {
   }
 
   void SendCurrentStatus(WebSocket *socket) {
+    if (!source_msg_.empty())
+      socket->send(source_msg_);
+
     if (is_playing_) {
       double offset = std::chrono::duration_cast<std::chrono::microseconds>(
           std::chrono::steady_clock::now() - last_timestamp_).count() / 1000000.0;
@@ -124,8 +129,7 @@ class Room {
       socket->send("pause|" + std::to_string(last_video_timestamp_));
     }
 
-    if (!source_msg_.empty())
-      socket->send(source_msg_);
+    socket->send("loop|" + std::to_string(static_cast<int>(is_loop_)));
   }
 
   int size() const {
@@ -207,6 +211,7 @@ class Room {
 
   bool is_playing_{false};
   double last_video_timestamp_{0};
+  bool is_loop_{false};
   std::chrono::steady_clock::time_point last_timestamp_;
 
   void BroadcastUserCount() {

@@ -1,0 +1,426 @@
+/*********************************************
+ * SybimVideoPlayer (inspired by vlite-js.css)
+ *********************************************/
+
+.sybim-player {
+  font-family: Roboto,arial,sans-serif;
+  position: relative;
+  height: 100vh;
+  background-color: #000;
+  overflow: hidden;
+
+  box-sizing: border-box;
+}
+
+.sybim-player * {
+  box-sizing: border-box;
+}
+
+.sybim-player a, .sybim-player div, .sybim-player li, .sybim-player p, .sybim-player span, .sybim-player ul {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  font: inherit;
+  vertical-align: baseline;
+}
+
+.sybim-player .real-player {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  object-fit: contain;
+}
+
+.sybim-player .real-player > iframe {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100vh;
+  object-fit: contain;
+}
+
+.sybim-player .overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+}
+
+.sybim-player .overlay .overlay-right {
+  position: absolute;
+  top: 0;
+  width: 30%;
+  height: 100%;
+
+  left: 0;
+}
+
+.sybim-player .overlay .overlay-right {
+  position: absolute;
+  top: 0;
+  width: 30%;
+  height: 100%;
+
+  right: 0;
+}
+
+@keyframes loader {
+  0%,
+  80%,
+  100% {
+    transform: scale(0);
+  }
+  40% {
+    transform: scale(1);
+  }
+}
+
+.sybim-player .loader {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  visibility: hidden;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  transition: opacity .2s ease-in, visibility .2s ease-in;
+}
+
+.sybim-player .loader .loader-content {
+  margin: 0 auto;
+  width: 70px;
+  text-align: center;
+}
+
+.sybim-player .loader .loader-content > div {
+  width: 18px;
+  height: 18px;
+  background-color: #fff;
+  border-radius: 100%;
+  display: inline-block;
+  animation: loader 1.4s ease-in-out infinite both;
+}
+
+.sybim-player .loader .loader-content .loader-bounce-1 {
+  animation-delay: -.32s;
+}
+
+.sybim-player .loader .loader-content .loader-bounce-2 {
+  animation-delay: -.16s;
+}
+
+.sybim-player .loader .loader-content .loader-bounce-3 {
+  animation-delay: 0s;
+}
+
+.sybim-player .thumbnail {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: #000;
+  background-repeat: no-repeat;
+  background-position: center;
+  background-size: cover;
+  visibility: hidden;
+  opacity: 0;
+  z-index: 2;
+}
+
+.sybim-player .thumbnail.active {
+  opacity: 1;
+  visibility: visible;
+}
+
+.sybim-player .big-play-btn {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+
+  width: 65px;
+  height: 65px;
+  cursor: pointer;
+  z-index: 2;
+  transition: opacity .2s ease-in;
+
+  transition-delay: .1s;
+}
+
+.sybim-player .big-play-btn.disabled {
+  cursor: not-allowed;
+}
+
+.sybim-player.playing .big-play-btn {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.sybim-player.loading .big-play-btn {
+  visibility: hidden;
+  opacity: 0;
+}
+
+.sybim-player .big-play-btn .big-play-icon {
+  display: block;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.sybim-player .big-play-btn svg {
+  fill: #fff;
+  transition: opacity .25s;
+  opacity: .85;
+  width: 60px;
+  height: 60px;
+}
+
+.sybim-player .control-bar {
+  position: absolute;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 50px;
+  padding-top: 3px;
+  text-align: right;
+  padding-left: 10px;
+  padding-right: 10px;
+  background: linear-gradient(0deg, #000, hsla(0, 0%, 100%, 0));
+  transition: .25s ease-in;
+}
+
+.sybim-player .control-bar.hidden {
+  opacity: 0;
+}
+
+.sybim-player .control-bar:hover {
+  opacity: 1 !important;
+}
+
+.sybim-player .control-bar .progress-bar {
+  position: absolute;
+  top: -5px;
+  left: 10px;
+  right: 10px;
+  transition: height .1s ease-out, top .1s ease-out;
+  z-index: 1;
+
+  padding-top: 3px;
+  padding-bottom: 3px;
+}
+
+.sybim-player .control-bar .progress-total {
+  width: 100%;
+  height: 3px;
+  background-color: rgba(238, 238, 238, .5);
+  transition: all .1s ease-out;
+  border-left: 1px solid;
+  border-right: 1px solid;
+}
+
+.sybim-player .control-bar .progress-seek {
+  width: 0;
+  height: 3px;
+  background: linear-gradient(135deg, #ff0053, #ee5b35);
+  transition: all .1s ease-out;
+}
+
+.sybim-player .control-bar .progress-bar:hover {
+  top: -2;
+}
+
+.sybim-player .control-bar .progress-bar:hover .progress-total {
+  height: 5px;
+}
+
+.sybim-player .control-bar .progress-bar:hover .progress-seek {
+  height: 5px;
+}
+
+.sybim-player .control-bar .progress-input {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  cursor: pointer;
+  opacity: 0;
+}
+
+.sybim-player .control-bar .progress-bar.disabled .progress-input {
+  cursor: not-allowed;
+}
+
+.sybim-player .control-bar .control-bar-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+}
+
+.sybim-player .control-bar .play-pause-btn {
+  position: relative;
+  float: left;
+  width: 40px;
+  height: 100%;
+  cursor: pointer;
+}
+
+.sybim-player .control-bar .play-pause-btn.disabled {
+  cursor: not-allowed;
+}
+
+.sybim-player.paused .control-bar .play-pause-btn .play-icon {
+  display: block;
+}
+
+.sybim-player.playing .control-bar .play-pause-btn .pause-icon {
+  display: block;
+}
+
+.sybim-player .control-bar .time {
+  color: #fff;
+  opacity: 0.7;
+  font-size: 12px;
+  float: left;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.sybim-player .control-bar .volume {
+  position: relative;
+  float: left;
+  width: 40px;
+  height: 100%;
+  cursor: pointer;
+}
+
+.sybim-player .control-bar .volume:not(.muted) .volume-high-icon {
+  display: block;
+}
+
+.sybim-player .control-bar .volume.muted .volume-muted-icon {
+  display: block;
+}
+
+.sybim-player .control-bar .volume-slider {
+  display: none;
+  position: relative;
+  float: left;
+  width: 64px;
+  height: 100%;
+  cursor: pointer;
+  top: 10px;
+  left: -10px;
+}
+
+.sybim-player .control-bar .volume:hover + .volume-slider {
+  display: block;
+}
+
+.sybim-player .control-bar .volume-slider:hover {
+  display: block;
+}
+
+.sybim-player .control-bar .volume-slider > input {
+  height: 2px;
+  border-radius: 0px;
+  color: #fff;
+  outline: none;
+  transition: opacity .2s ease-in-out;
+  width: 80%;
+  opacity: 0.85;
+}
+
+.sybim-player .control-bar .volume-slider > input::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  appearance: none;
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  border: 0px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.sybim-player .control-bar .volume-slider > input::-moz-range-thumb {
+  width: 12px;
+  height: 12px;
+  border-radius: 6px;
+  border: 0px;
+  background: #fff;
+  cursor: pointer;
+}
+
+.sybim-player .control-bar .loop {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 100%;
+  cursor: pointer;
+}
+
+.sybim-player .control-bar .loop .icon {
+  display: block;
+}
+
+.sybim-player .control-bar .loop.looped .icon > svg {
+  fill: #fff;
+  opacity: 1;
+}
+
+.sybim-player .control-bar .fullscreen {
+  position: relative;
+  display: inline-block;
+  width: 40px;
+  height: 100%;
+  cursor: pointer;
+}
+
+.sybim-player .control-bar .fullscreen:not(.exit) .fullscreen-icon {
+  display: block;
+}
+
+.sybim-player .control-bar .fullscreen.exit .shrink-icon {
+  display: block;
+}
+
+.sybim-player .control-bar .icon {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translateX(-50%) translateY(-50%);
+}
+
+.sybim-player .control-bar .icon > svg {
+  fill: #fff;
+  transition: opacity .25s;
+  opacity: .7;
+  width: 18px;
+  height: 18px;
+}
+
+.sybim-player .control-bar div:not(.disabled) > .icon > svg:hover {
+  fill: #fff;
+  transition: opacity .25s;
+  opacity: 1;
+  width: 18px;
+  height: 18px;
+}
+
+.sybim-player .control-bar .disabled .icon > svg {
+  fill: #999;
+  cursor: not-allowed;
+}

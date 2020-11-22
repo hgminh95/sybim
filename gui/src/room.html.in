@@ -1,17 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-  <meta content="utf-8" http-equiv="encoding">
-  <title>SyBim</title>
-  <link rel="stylesheet" type="text/css" href="/static/main.css">
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
-  <link rel="manifest" href="/static/site.webmanifest">
-</head>
+{% extends 'base.html' %}
 
-<body>
+{% block content %}
   <div class="row">
     <div class="video-container">
       <video id="video-player" preload="auto" class="real-player">
@@ -137,62 +126,14 @@
   </div>
   <div id="toast"></div>
 
-  <script src="/static/third_party/srt_webvtt.js"></script>
-  <script src="/static/third_party/spark-md5.min.js"></script>
-  <script src="/static/base.js"></script>
-  <script>
-    let hashCounter = 0;
-    function calculateMD5Hash(file, onFinish) {
-      hashCounter += 1;
-      let thisHashCounter = hashCounter;
-			let blobSlice = File.prototype.slice || File.prototype.mozSlice || File.prototype.webkitSlice,
-          chunkSize = 2097152, // read in chunks of 2MB
-          chunks = Math.ceil(file.size / chunkSize),
-          currentChunk = 0,
-          spark = new SparkMD5.ArrayBuffer(),
-          frOnload = function(e){
-            spark.append(e.target.result); // append array buffer
-            currentChunk++;
-            if (currentChunk < chunks)
-              loadNext();
-            else if (thisHashCounter === hashCounter) // ignore old runs
-              onFinish(spark.end());
-					},
-          frOnerror = function () {};
-      function loadNext() {
-        let fileReader = new FileReader();
-        fileReader.onload = frOnload;
-        fileReader.onerror = frOnerror;
-        let start = currentChunk * chunkSize,
-        end = ((start + chunkSize) >= file.size) ? file.size : start + chunkSize;
-        fileReader.readAsArrayBuffer(blobSlice.call(file, start, end));
-      };
-
-      loadNext();
-    }
-  </script>
-  <script>
-    function toHHMMSS(seconds) {
-      let hh = Math.floor(seconds / (60 * 60));
-      let mm = Math.floor((seconds / 60) % 60);
-      let ss = Math.floor(seconds % 60);
-
-      if (hh > 0)
-        return `${hh > 9 ? '' : '0'}${hh}:${mm > 9 ? '' : '0'}${mm}:${ss > 9 ? '' : '0'}${ss}`;
-      else
-        return `${mm > 9 ? '' : '0'}${mm}:${ss > 9 ? '' : '0'}${ss}`;
-    }
-  </script>
+  <script src="/static/srt_webvtt.js"></script>
   <script>
     var helpController = {
       hide() {
-        console.log("Hide help overlay");
         $('help-overlay').style.display = 'none';
       },
 
       showOwnerHelp(overlay = true) {
-        console.log("Show owner help");
-
         $('owner-help-text').style.display = 'block';
         $('member-help-text').style.display = 'none';
         $('invalid-video-help-text').style.display = 'none';
@@ -202,8 +143,6 @@
       },
 
       showMemberHelp(overlay = true) {
-        console.log("Show member help");
-
         $('owner-help-text').style.display = 'none';
         $('member-help-text').style.display = 'block';
         $('invalid-video-help-text').style.display = 'none';
@@ -213,8 +152,6 @@
       },
 
       showInvalidVideoTypeHelp() {
-        console.log("Show invalid video type help");
-
         $('owner-help-text').style.display = 'none';
         $('member-help-text').style.display = 'none';
         $('invalid-video-help-text').style.display = 'block';
@@ -268,7 +205,6 @@
             // helpController.showInvalidVideoTypeHelp(file.type);
             return;
           } else {
-            // calculateMD5Hash(file, hash => controller.updateLocalHash(hash));
             this.source_callback && this.source_callback('local', URL.createObjectURL(file), file.type);
           }
         };
@@ -400,8 +336,6 @@
         this.isOwner = false;
         this.isConnected = false;
         this.room = '';
-        this.upstreamHash = '';
-        this.localHash = '';
         this.hasVideo = false;
         this.prevUrl = '';
         this.userColors = {};
@@ -423,7 +357,6 @@
             localStorage.getItem('nickname'));
 
         this.socket.onopen = () => {
-          console.log("connected");
           this.isConnected = true;
           $("reconnect-overlay").style.display = "none";
           this.insertNewChat('sybim', 'Welcome! Have Fun (:');
@@ -484,9 +417,19 @@
             this.username = tokens[2];
           } else if (tokens[0] === 'chat') {
             this.onChatReceived(tokens[1], tokens[2]);
+          } else if (tokens[0] === 'user_list') {
+            $('user-count-text').innerHTML = tokens.length - 2;
+            this.renderUsersList(tokens.slice(1));
+          } else if (tokens[0] === 'source') {
+            if (tokens.length === 4) {
+              if (tokens[1] !== 'local')
+                this.onNewURL(tokens[1], tokens[2], tokens[3]);
+            }
           } else {
-            if (!this.videoPlayer)
+            if (!this.hasVideo)
               return;
+
+            console.log(tokens[0], tokens[1]);
 
             if (tokens[0] === 'play') {
               this.videoPlayer.SeekTo(parseFloat(tokens[1]));
@@ -496,16 +439,11 @@
               this.videoPlayer.Pause();
             } else if (tokens[0] === 'seek') {
               this.videoPlayer.SeekTo(parseFloat(tokens[1]));
-            } else if (tokens[0] === 'hash') {
-              this.updateUpstreamHash(tokens[1]);
-            } else if (tokens[0] === 'user_list') {
-              $('user-count-text').innerHTML = tokens.length - 2;
-              this.renderUsersList(tokens.slice(1));
-            } else if (tokens[0] === 'source') {
-              if (tokens.length === 4) {
-                if (tokens[1] !== 'local')
-                  this.onNewURL(tokens[1], tokens[2], tokens[3]);
-              }
+            } else if (tokens[0] === 'loop') {
+              if (tokens[1] == '1')
+                this.videoPlayer.SetLoop(true);
+              else
+                this.videoPlayer.SetLoop(false);
             } else {
               console.log(tokens[0]);
             }
@@ -527,7 +465,7 @@
 
         this.hasVideo = true;
 
-        this.videoPlayer.SetSource('html5', url);
+        this.videoPlayer.SetSource(SelectPlayer(url), url);
 
         if (this.isOwner) {
           this.socket.send(`c|b|source|${source}|${url}|${type}`);
@@ -550,29 +488,6 @@
             this.requestStatus();
           }
         });
-      }
-
-      updateLocalHash(md5) {
-        this.localHash = md5;
-        this.socket.send(`c|h|hash|${md5}`);
-
-        this.compareHash();
-      }
-
-      updateUpstreamHash(md5) {
-        this.upstreamHash = md5;
-
-        this.compareHash();
-      }
-
-      compareHash() {
-        if (this.upstreamHash === "" || this.localHash === "" || this.isOwner)
-          return;
-        if (this.upstreamHash === this.localHash) {
-          this.insertNewChat('sybim', 'Video matches with owners');
-        } else {
-          this.insertNewChat('sybim_error', 'Video does not match with owner');
-        }
       }
 
       requestStatus() {
@@ -756,7 +671,4 @@
       $("sidebar-open-btn").style.display = "none";
     };
   </script>
-
-</body>
-
-</html>
+{% endblock %}

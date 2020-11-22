@@ -1,17 +1,6 @@
-<!DOCTYPE html>
-<html>
-<head>
-  <meta content="text/html;charset=utf-8" http-equiv="Content-Type">
-  <meta content="utf-8" http-equiv="encoding">
-  <title>SyBim</title>
-  <link rel="stylesheet" type="text/css" href="/static/main.css">
-  <link rel="apple-touch-icon" sizes="180x180" href="/static/apple-touch-icon.png">
-  <link rel="icon" type="image/png" sizes="32x32" href="/static/favicon-32x32.png">
-  <link rel="icon" type="image/png" sizes="16x16" href="/static/favicon-16x16.png">
-  <link rel="manifest" href="/static/site.webmanifest">
-</head>
+{% extends 'base.html' %}
 
-<body>
+{% block content %}
   <div class="center-screen">
 		<h1>&#127910; <a href="/">SyBim</a></h1>
     <p><strong>Join</strong> room <span id="room_name">abcdef</span></p>
@@ -32,8 +21,6 @@
     </form>
   </div>
   <div id="toast"></div>
-
-  <script src="/static/base.js"></script>
 
   <script>
     let prevNickname = localStorage.getItem('nickname');
@@ -104,3 +91,4 @@
 </body>
 
 </html>
+{% endblock %}

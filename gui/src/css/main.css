@@ -1,0 +1,326 @@
+.reconnect-overlay .loader {
+  border: 8px solid #f3f3f3; /* Light grey */
+  border-top: 8px solid #3498db; /* Blue */
+  border-radius: 50%;
+  width: 100px;
+  height: 100px;
+  animation: spin 2s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.sybim-icon {
+  width: 1.25em;
+  text-align: center;
+  display: inline-block;
+}
+
+/* Component specific */
+
+.row {
+  display: flex;
+}
+
+.video-container {
+  flex: 4;
+  display: grid;
+  position: relative;
+}
+
+#help-overlay {
+  background: linear-gradient(to right, #1f2c36, #969593);
+  z-index: 2;
+  grid-area: 1 / 1;
+}
+
+#reconnect-overlay {
+  display: none;
+  background-color: rgb(0, 0, 0);
+  cursor: no-drop;
+  z-index: 2;
+
+  grid-area: 1 / 1;
+}
+
+#chat-pane {
+  overflow: hidden;
+  z-index: 99;
+
+  position: absolute;
+  bottom: 70px;
+  right: 0;
+  width: 30%;
+  min-width: 200px;
+  max-width: 450px;
+  height: 50%;
+  max-height: 400px;
+  opacity: 0;
+  transition: opacity 5s ease-out;
+
+  -webkit-mask-image: linear-gradient(to top, rgba(0,0,0,1), rgba(0,0,0,0.2));
+}
+
+#chat-pane:hover {
+  opacity: 1;
+  transition: opacity 2s ease-in;
+}
+
+#chat-input {
+  width: 100%;
+  margin-top: 1rem;
+}
+
+#chat-pane p {
+  margin-top: 4px;
+  margin-bottom: 4px;
+}
+
+#chat-pane p .username {
+  color: black;
+  width: fit-content;
+}
+
+#chat-pane p .content {
+  color: black;
+  background-color: white;
+  width: fit-content;
+  margin-left: 4px;
+  padding-left: 2px;
+  padding-right: 2px;
+}
+
+#chat-wrapper {
+  position: absolute;
+  bottom: 0px;
+  width: 95%;
+}
+
+.sidebar {
+  background-color: floralwhite;
+  flex: 1;
+  margin: 0;
+  z-index: 2;
+  padding-left: 1rem;
+  padding-right: 1rem;
+  height: 100vh;
+	overflow-y: auto;
+
+  scrollbar-width: thin;
+}
+
+.sidebar .title {
+  font-size: 1.5em;
+  font-weight: bold;
+
+  padding-top: 1rem;
+  padding-bottom: 1.5rem;
+
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.sidebar .section {
+  padding-top: 1rem;
+  padding-bottom: 1rem;
+
+  border-bottom: 1px solid rgba(0, 0, 0, 0.5);
+}
+
+.sidebar .section .header {
+  font-weight: bold;
+  margin-bottom: 1rem;
+}
+
+.toggle-btn {
+  display: flex;
+}
+
+.toggle-btn > div {
+  flex-grow: 1;
+  text-align: center;
+  cursor: pointer;
+  border: 1px solid rgba(0, 0, 0, 0.2);
+}
+
+.toggle-btn > div.active {
+  font-weight: bold;
+  background-color: lightgrey;
+  cursor: default;
+}
+
+.toggle-btn > div.disabled {
+  cursor: not-allowed;
+  color: lightgrey;
+}
+
+.toggle-btn > div.disabled.active {
+  cursor: default;
+  color: black;
+}
+
+.member {
+  margin-top: 0.4rem;
+  margin-bottom: 0.4rem;
+}
+
+.member:before {
+  content: "😎";
+  opacity: 0;
+  padding-right: 0.4rem;
+}
+
+.member.owner {
+  font-weight: bold;
+}
+
+.member.owner:before {
+  opacity: 1;
+}
+
+.member:hover {
+  background-color: lightgrey;
+}
+
+.member .promote-btn {
+  display: inline-block;
+  float: right;
+  opacity: 0;
+}
+
+.member .promote-btn:before {
+  cursor: pointer;
+  content: "Promote 👑";
+}
+
+.member .promote-btn:hover {
+  opacity: 1;
+}
+
+.member.owner .promote-btn:before {
+  content: "";
+}
+
+.center-screen {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+  height: 100vh;
+}
+
+.footer {
+  position: fixed;
+  bottom: 1rem;
+  width: 100%;
+  text-align: right;
+}
+
+
+/* Snack bar */
+
+/* The snackbar - position it at the bottom and in the middle of the screen */
+#toast {
+  visibility: hidden; /* Hidden by default. Visible on click */
+  min-width: 120px; /* Set a default minimum width */
+  margin-left: -125px; /* Divide value of min-width by 2 */
+  background-color: #444; /* Black background color */
+  color: #fff; /* White text color */
+  text-align: center; /* Centered text */
+  border-radius: 2px; /* Rounded borders */
+  padding: 8px 20px; /* Padding */
+  position: fixed; /* Sit on top of the screen */
+  z-index: 1000; /* Add a z-index if needed */
+  left: 50%; /* Center the snackbar */
+  bottom: 30px; /* 30px from the bottom */
+}
+
+/* Show the snackbar when clicking on a button (class added with JavaScript) */
+#toast.show {
+  visibility: visible; /* Show the snackbar */
+  /* Add animation: Take 0.5 seconds to fade in and out the snackbar.
+  However, delay the fade out process for 2.5 seconds */
+  -webkit-animation: fadein 0.5s, fadeout 0.5s 2.5s;
+  animation: fadein 0.5s, fadeout 0.5s 2.5s;
+}
+
+/* Animations to fade the snackbar in and out */
+@-webkit-keyframes fadein {
+  from {bottom: 0; opacity: 0;}
+  to {bottom: 30px; opacity: 1;}
+}
+
+@keyframes fadein {
+  from {bottom: 0; opacity: 0;}
+  to {bottom: 30px; opacity: 1;}
+}
+
+@-webkit-keyframes fadeout {
+  from {bottom: 30px; opacity: 1;}
+  to {bottom: 0; opacity: 0;}
+}
+
+@keyframes fadeout {
+  from {bottom: 30px; opacity: 1;}
+  to {bottom: 0; opacity: 0;}
+}
+
+*:fullscreen
+*:-ms-fullscreen,
+*:-webkit-full-screen,
+*:-moz-full-screen {
+  overflow: auto !important;
+}
+
+/* Heart animation */
+@keyframes heartfade {
+  0% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.heart {
+  z-index: 999;
+  animation: heartfade 10s linear;
+  position: absolute;
+}
+
+.heart:before,
+.heart:after {
+  content: "";
+  background-color : #fc2a62;
+  position : absolute;
+  height : 30px;
+  width : 45px;
+  border-radius : 15px 0px 0px 15px;
+}
+
+.heart:before {
+  transform : rotate(45deg);
+}
+
+.heart:after {
+  left : 10.5px;
+  transform : rotate(135deg);
+}
+
+.eww {
+  z-index: 999;
+  animation: heartfade 10s linear;
+  position: absolute;
+}
+
+.eww:before {
+  content: "🤢";
+}
+
+.wink {
+  z-index: 999;
+  animation: heartfade 10s linear;
+  position: absolute;
+}
+
+.wink:before {
+  content: "😉";
+}

@@ -1,0 +1,49 @@
+body {
+  margin: 0px;
+  background: linear-gradient(to right, #304352, #d7d2cc);
+  font-family: "Palatino Linotype", "Book Antiqua", Palatino, serif;
+  height: 100%;
+  overflow: hidden;
+}
+
+.disable-select {
+  user-select: none; /* supported by Chrome and Opera */
+  -webkit-user-select: none; /* Safari */
+  -khtml-user-select: none; /* Konqueror HTML */
+  -moz-user-select: none; /* Firefox */
+  -ms-user-select: none; /* Internet Explorer/Edge */
+}
+
+a, a:visited {
+  color: black;
+}
+
+.monospace {
+  font-family: "Lucida Console", Monaco, monospace;
+  font-size: 80%;
+}
+
+/* Scroll bar */
+
+::-webkit-scrollbar {
+  width: 10px;
+}
+
+::-webkit-scrollbar-track {
+  border-radius: 2px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.1);
+}
+
+::-webkit-scrollbar-thumb {
+  border-radius: 4px;
+  -webkit-box-shadow: inset 0 0 6px rgba(0,0,0,0.5);
+  background-color: rgba(0, 0, 0, 0.5);
+}
+
+.error {
+  color: red;
+}
+
+.success {
+  color: green;
+}
