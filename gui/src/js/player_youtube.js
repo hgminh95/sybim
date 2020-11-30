@@ -96,10 +96,6 @@ class YoutubePlayer {
     }
   }
 
-  SeekToImpl(new_time) {
-    this.youtube_player.seekTo(new_time);
-  }
-
   current_time() {
     return this.youtube_player.getCurrentTime();
   }
@@ -108,8 +104,19 @@ class YoutubePlayer {
     return this.youtube_player.getDuration();
   }
 
+  volume() {
+    return this.youtube_player.getVolume() / 100;
+  }
+
+  SeekToImpl(new_time) {
+    this.youtube_player.seekTo(new_time);
+  }
+
+  SetVolumeImpl(new_volume) {
+    this.youtube_player.setVolume(new_volume * 100);
+  }
+
   PlayImpl() {
-    console.log("Play video");
     this.youtube_player.playVideo();
   }
 
