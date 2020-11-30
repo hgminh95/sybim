@@ -19,7 +19,9 @@ class YoutubePlayer {
           fs: 0,
           playsinline: 1,
           wmode: 'transparent',
-          controls: 0
+          controls: 0,
+          cc_load_policy: 1,
+          cc_lang_pref: 'en',
         },
         events: {
           onReady: data => this.OnYoutubeReady(data),
