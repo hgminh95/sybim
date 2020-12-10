@@ -5,7 +5,7 @@ class Html5Player {
     this.html5_player = sb_player.player;
     this.sb_player = sb_player;
 
-    this.html5_player.src = source;
+    this.html5_player.src = TryGetDownloadableURL(source);
 
     this.WaitUntilVideoIsReady().then(() => { this.sb_player.OnPlayerReady(); } );
 
@@ -106,3 +106,20 @@ class Html5Player {
     return this.html5_player.volume;
   }
 }
+
+function TryGetDownloadableURL(url) {
+  // https://drive.google.com/file/d/1v6tvFKvevjBJ4PIGSH-xScFmiVgV7zct/view?usp=sharing
+  let match = url.match(/^https:\/\/drive.google.com\/file\/d\/([-\w]{25,})/);
+  if (match) {
+    return 'https://drive.google.com/u/0/uc?id=' + match[1] + '&export=download';
+  }
+
+  // https://www.dropbox.com/s/h6gmkr17ds9mcq4/file_example_MP4_480_1_5MG.mp4?dl=0
+  match = url.match(/(^https:\/\/www.dropbox.com\/s\/[\w]+\/[%\.\w]+)(\?dl=0)?/);
+  if (match) {
+    return match[1] + '?dl=1';
+  }
+
+  return url;
+}
+
