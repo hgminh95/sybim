@@ -1,0 +1,5 @@
+*
+!nginx.conf.template
+!requirements.txt
+!generate_everything.py
+!src/*

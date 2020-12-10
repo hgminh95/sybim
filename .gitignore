@@ -1,6 +1,7 @@
 nginx.conf
 /gui/static/third_party
 /server/logs
+.env
 
 
 # Created by https://www.gitignore.io/api/vim,c++,linux,python,windows
