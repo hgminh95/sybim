@@ -1,0 +1,18 @@
+version: "3"
+
+services:
+  sybim_gui_dev:
+    extends:
+      file: docker-compose.yml
+      service: sybim_gui
+
+    volumes:
+      - "./gui/_build:/html"
+
+    environment:
+      - SYNC_SERVER_HOST=sybim_server_dev
+
+  sybim_server_dev:
+    extends:
+      file: docker-compose.yml
+      service: sybim_server

@@ -1,0 +1,6 @@
+*
+!*.h
+!*.cpp
+!seasocks/*
+!spdlog/*
+!CMakeLists.txt
