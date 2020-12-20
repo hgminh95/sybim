@@ -67,9 +67,9 @@ class SybimVideoPlayer {
   constructor({selector, options}) {
     this.is_paused = null;
     this.is_ready = false;
-    this.isFullScreen = false;
-    this.delayAutoHide = 3000;
-    this.supportTouch = this.IsTouchSupported();
+    this.is_fullscreen = false;
+    this.delay_autohide = 3000;
+    this.support_touch = this.IsTouchSupported();
     this.controls_enable = false;
 
     if (typeof selector === 'string')
@@ -103,7 +103,7 @@ class SybimVideoPlayer {
     const htmlControls = `
       <div id="div_player" class="real-player"></div>
       <div class="overlay" data-v-toggle-play-pause>
-        ${!this.supportTouch
+        ${!this.support_touch
           ? `<div class="overlay-left" data-v-fast-forward data-direction="left"></div><div class="overlay-right" data-v-fast-forward data-direction="right"></div>`
           : ``}
       </div>
@@ -304,7 +304,7 @@ class SybimVideoPlayer {
         this.wrapperPlayer.querySelector('.thumbnail').classList.remove('active');
       }
 
-      this.real_player.PlayImpl();
+      this.real_player && this.real_player.PlayImpl();
       this.is_paused = false;
       this.UpdatePlayPauseGui();
     }
@@ -312,7 +312,7 @@ class SybimVideoPlayer {
 
   Pause(is_human) {
     if (this.controls_enable || !is_human) {
-      this.real_player.PauseImpl();
+      this.real_player && this.real_player.PauseImpl();
       this.is_paused = true;
       this.UpdatePlayPauseGui();
     }
@@ -334,7 +334,7 @@ class SybimVideoPlayer {
       this.wrapperPlayer.classList.replace('paused', 'playing');
       this.timer_autohide = setTimeout(() => {
         this.wrapperPlayer.querySelector('.control-bar').classList.add('hidden');
-      }, this.delayAutoHide);
+      }, this.delay_autohide);
     }
   }
 
@@ -377,7 +377,7 @@ class SybimVideoPlayer {
 
   SetLoop(loop, is_human) {
     if (this.controls_enable || !is_human) {
-      this.real_player.SetLoopImpl(loop);
+      this.real_player && this.real_player.SetLoopImpl(loop);
 
       const loop_btn = this.wrapperPlayer.querySelector('.loop');
 
@@ -451,7 +451,7 @@ class SybimVideoPlayer {
 
       this.timer_autohide = setTimeout(() => {
 				this.wrapperPlayer.querySelector('.control-bar').classList.add('hidden')
-			}, this.delayAutoHide)
+			}, this.delay_autohide)
     }
   }
 

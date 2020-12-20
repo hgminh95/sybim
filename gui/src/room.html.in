@@ -422,8 +422,11 @@
             this.renderUsersList(tokens.slice(1));
           } else if (tokens[0] === 'source') {
             if (tokens.length === 4) {
-              if (tokens[1] !== 'local')
+              if (tokens[1] !== 'local') {
                 this.onNewURL(tokens[1], tokens[2], tokens[3]);
+              } else {
+                videoSelectionController.switchTo(tokens[1], tokens[2]);
+              }
             }
           } else {
             if (!this.hasVideo)
@@ -456,6 +459,8 @@
 
         if (this.prevUrl === url)
           return;
+
+        console.log(`[sybim] [debug] New Source: ${source} ${type} ${url}`);
 
         this.prevUrl = url;
 

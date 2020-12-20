@@ -61,7 +61,6 @@ class YoutubePlayer {
   }
 
   OnYoutubeReady(data) {
-    console.log("Youtube player is ready");
     this.sb_player.OnPlayerReady();
   }
 
