@@ -429,8 +429,6 @@
             if (!this.hasVideo)
               return;
 
-            console.log(tokens[0], tokens[1]);
-
             if (tokens[0] === 'play') {
               this.videoPlayer.SeekTo(parseFloat(tokens[1]));
               this.videoPlayer.Play();
@@ -445,7 +443,7 @@
               else
                 this.videoPlayer.SetLoop(false);
             } else {
-              console.log(tokens[0]);
+              console.log('Unknown message: ' + tokens[0]);
             }
           }
         }

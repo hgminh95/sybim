@@ -393,7 +393,7 @@ class SybimVideoPlayer {
 
   SeekTo(new_time, is_human) {
     if (this.controls_enable || !is_human)
-      this.real_player.SeekToImpl(new_time)
+      this.real_player && this.real_player.SeekToImpl(new_time)
   }
 
   ToggleFullScreen() {
