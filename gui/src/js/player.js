@@ -405,6 +405,14 @@ class SybimVideoPlayer {
       this.real_player && this.real_player.SeekToImpl(new_time)
   }
 
+  SetSubtitle(subtitle) {
+    this.real_player.SetSubtitleImpl(subtitle);
+  }
+
+  RemoveSubtitle() {
+    this.real_player.RemoveSubtitleImpl();
+  }
+
   ToggleFullScreen() {
     let elem = document.body;
 

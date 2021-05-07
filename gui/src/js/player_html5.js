@@ -94,6 +94,15 @@ class Html5Player {
     this.html5_player.loop = loop;
   }
 
+  SetSubtitleImpl(subtitle) {
+    this.html5_player.firstElementChild.src = subtitle;
+    this.html5_player.textTracks[0].mode = 'showing';
+  }
+
+  RemoveSubtitleImpl() {
+    this.html5_player.textTracks[0].mode = 'hidden';
+  }
+
   duration() {
     return this.html5_player.duration;
   }

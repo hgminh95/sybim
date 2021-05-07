@@ -4,7 +4,7 @@
   <div class="row">
     <div class="video-container">
       <video id="video-player" preload="auto" class="real-player">
-        <track id="subtitle" kind="subtitles"/>
+        <track kind="subtitles"/>
       </video>
 
       <div id="help-overlay">
@@ -651,8 +651,7 @@
       vttConverter
           .getURL()
           .then(url => {
-            $('subtitle').src = url;
-            videoPlayer.real_player.html5_player.textTracks[0].mode = 'showing';
+            videoPlayer.SetSubtitle(url);
             $('remove-subtitle-btn').style.display = 'inline';
 
             toast('New subtitle loaded');
@@ -664,7 +663,7 @@
     }
 
     $('remove-subtitle-btn').onclick = evt => {
-      videoPlayer.real_player.html5_player.textTracks[0].mode = 'hidden';
+      videoPlayer.RemoveSubtitle();
       $("subtitle-input").value = '';
       evt.target.style.display = 'none';
 

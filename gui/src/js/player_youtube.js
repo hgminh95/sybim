@@ -115,6 +115,14 @@ class YoutubePlayer {
     this.youtube_player.setVolume(new_volume * 100);
   }
 
+  SetSubtitleImpl(subtitle) {
+    this.youtube_player.setOption( "captions" , 'track' , { 'languageCode' : subtitle } );
+  }
+
+  RemoveSubtitleImpl() {
+    this.youtube_player.setOption( "captions" , 'track' , {} );
+  }
+
   PlayImpl() {
     this.youtube_player.playVideo();
   }
