@@ -115,7 +115,11 @@
 
       <div class="section">
         <div class="header">💬 Subtitles</div>
-        <input id="subtitle-input" type="file" accept=".vtt,.srt" style="width: 100%"/>
+        <div style="display:flex">
+          <input id="subtitle-input" type="file" accept=".vtt,.srt" style="width: 100%"/>
+          <span id="remove-subtitle-btn"
+              style="margin-left: 1rem; margin-right: 1rem; cursor: pointer; display: none;">❌</span>
+        </div>
       </div>
 
       <div class="section">
@@ -649,6 +653,7 @@
           .then(url => {
             $('subtitle').src = url;
             videoPlayer.real_player.html5_player.textTracks[0].mode = 'showing';
+            $('remove-subtitle-btn').style.display = 'inline';
 
             toast('New subtitle loaded');
           })
@@ -656,6 +661,14 @@
             toast('Failed to load subtitle file');
             console.log('Error: ' + err)
           });
+    }
+
+    $('remove-subtitle-btn').onclick = evt => {
+      videoPlayer.real_player.html5_player.textTracks[0].mode = 'hidden';
+      $("subtitle-input").value = '';
+      evt.target.style.display = 'none';
+
+      toast('Subtitle removed');
     }
 
     $("chat-input").onkeyup = evt => {
