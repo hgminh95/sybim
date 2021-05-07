@@ -71,6 +71,7 @@ class SybimVideoPlayer {
     this.delay_autohide = 3000;
     this.support_touch = this.IsTouchSupported();
     this.controls_enable = false;
+    this.volume = 1;
 
     if (typeof selector === 'string')
       this.player = document.querySelector(selector);
@@ -185,7 +186,7 @@ class SybimVideoPlayer {
 
     this.wrapperPlayer.querySelector('.volume-slider > input').addEventListener('change', (e) => {
       e.preventDefault();
-      this.real_player.SetVolumeImpl(e.target.value);
+      this.SetVolume(e.target.value);
     }, false);
 
     this.wrapperPlayer.querySelector('.loop').addEventListener('click', e => {
@@ -246,13 +247,14 @@ class SybimVideoPlayer {
 
   OnPlayerReady() {
     this.UpdateLoadingStatus(false);
+    this.SetVolume(this.volume);
   }
 
   /**
    * Check if browser support touch event.
    */
   IsTouchSupported () {
-		return 'ontouchstart' in window || (window.DocumentTouch && document instanceof window.DocumentTouch)
+    return 'ontouchstart' in window || (window.DocumentTouch && document instanceof window.DocumentTouch)
   }
 
   DisableControls() {
@@ -391,6 +393,13 @@ class SybimVideoPlayer {
     }
   }
 
+  SetVolume(volume) {
+    this.real_player.SetVolumeImpl(volume);
+    this.volume = volume;
+
+    // TODO(mhoang) update GUI
+  }
+
   SeekTo(new_time, is_human) {
     if (this.controls_enable || !is_human)
       this.real_player && this.real_player.SeekToImpl(new_time)
@@ -424,11 +433,11 @@ class SybimVideoPlayer {
 
   OnKeyUp(e) {
     if (e.keyCode === 38) { // Up Arrow
-      this.real_player.SetVolumeImpl(this.real_player.volume() + 0.1);
+      this.SetVolume(this.volume + 0.1);
     }
 
     if (e.keyCode === 40) { // Down Arrow
-      this.real_player.SetVolumeImpl(this.real_player.volume() - 0.1);
+      this.SetVolume(this.volume - 0.1);
     }
 
     if (e.keyCode === 32) { // Space
@@ -450,22 +459,22 @@ class SybimVideoPlayer {
       clearTimeout(this.timer_autohide);
 
       this.timer_autohide = setTimeout(() => {
-				this.wrapperPlayer.querySelector('.control-bar').classList.add('hidden')
-			}, this.delay_autohide)
+	this.wrapperPlayer.querySelector('.control-bar').classList.add('hidden')
+      }, this.delay_autohide);
     }
   }
 
   OnCurrentTimeChange(tm) {
     const current_time = Math.round(tm || this.real_player.current_time());
-		const duration = this.real_player.duration();
-		const width = (current_time * 100) / duration;
-		const time_elem = this.wrapperPlayer.querySelector('.current-time');
-
-		this.wrapperPlayer.querySelector('.progress-seek').style.width = `${width}%`;
-
-		if (time_elem !== null) {
-			time_elem.innerHTML = this.constructor.FormatVideoTime(current_time);
-		}
+    const duration = this.real_player.duration();
+    const width = (current_time * 100) / duration;
+    const time_elem = this.wrapperPlayer.querySelector('.current-time');
+    
+    this.wrapperPlayer.querySelector('.progress-seek').style.width = `${width}%`;
+    
+    if (time_elem !== null) {
+      time_elem.innerHTML = this.constructor.FormatVideoTime(current_time);
+    }
   }
 
   RegisterSyncEventCallback(callback) {
@@ -478,15 +487,15 @@ class SybimVideoPlayer {
 
   static FormatVideoTime(time) {
     const ms = time * 1000
-		const min = (ms / 1000 / 60) << 0
-		const sec = (ms / 1000) % 60 << 0
-		let timeInString = ''
-
-		timeInString += min < 10 ? '0' : ''
-		timeInString += min + ':'
-		timeInString += sec < 10 ? '0' : ''
-		timeInString += sec
-
-		return timeInString;
+    const min = (ms / 1000 / 60) << 0
+    const sec = (ms / 1000) % 60 << 0
+    let timeInString = ''
+    
+    timeInString += min < 10 ? '0' : ''
+    timeInString += min + ':'
+    timeInString += sec < 10 ? '0' : ''
+    timeInString += sec
+    
+    return timeInString;
   }
 }
