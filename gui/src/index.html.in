@@ -12,6 +12,11 @@
     </p>
     <p>Or <a id="room-link" href="/c/"><strong>Create</strong></a> a new one.</p>
   </div>
+  <div class="footer">
+    <div style="margin-right: 1rem">
+      <a href="https://github.com/hgminh95/sybim" target="_blank"><strong>GitHub</strong></a>
+    </div>
+  </div>
   <div id="toast"></div>
 
   <script>

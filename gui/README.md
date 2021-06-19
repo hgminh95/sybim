@@ -59,3 +59,6 @@ To setup development env, you can use Nginx. Below is a sample config:
   }
 ```
 
+```
+$ sudo nginx -c $PWD/nginx.conf -g "daemon off;"
+```
