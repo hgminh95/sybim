@@ -1,6 +1,6 @@
 # sybim
 
-Watch videos together with your loved ones :insert_love_emoji:
+Watch videos together with your loved ones 🥰
 
 ## Overview
 
