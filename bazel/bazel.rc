@@ -1,0 +1,40 @@
+common --show_timestamps
+common --color=yes
+
+build --verbose_failures
+
+build --spawn_strategy=local
+build --strategy=Genrule=local
+
+build --action_env=PATH
+build --action_env=LD_LIBRARY_PATH
+build --action_env=LIBRARY_PATH
+build --action_env=CPLUS_INCLUDE_PATH
+build --host_action_env=CPLUS_INCLUDE_PATH
+build --action_env=CC
+build --action_env=CXX
+
+build --copt=-Wall
+build --copt=-Werror=return-type --copt=-Wno-maybe-uninitialized
+
+build --cxxopt -std=c++2a
+build --host_cxxopt -std=c++2a
+
+# include debug information in builds
+build --copt -g
+build --strip=never
+
+# build for 64-bit arch
+build --copt -m64
+
+# with these we can use --config dbg/opt without typing -c dbg/opt
+build:dbg -c dbg
+build:dbg --copt=-fsanitize=address
+build:dbg --linkopt=-fsanitize=address
+
+build:opt -c opt
+# bazel's default opt settings include -O2 and -DNDEBUG, we may want to use -O3
+# and other machine specific optimizations
+build:opt --copt=-O3
+build:opt --copt=-march=native
+

@@ -1,0 +1,11 @@
+cc_binary(
+    name = "sybim",
+    srcs = [
+        "main.cpp",
+        "util.h",
+    ],
+    deps = [
+        "@seasocks//:seasocks",
+        "@com_github_google_glog//:glog",
+    ],
+)

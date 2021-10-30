@@ -1,15 +1,20 @@
 # Server
 
-## Build
+## Requirements
+
+- GCC with C++20 support
+- Bazel
+- Internet
+
+## How to use
 
 ```
-$ mkdir build && cd build
-$ cmake -DCMAKE_BUILD_TYPE=Release ..
-$ make
-```
+# To build
+$ bazel build server:sybim
 
-## Run
+# To build and run
+$ bazel run server:sybim -- -port 8080
 
-```
-$ ./sync_server -p $PORT
+# To build and run in production
+$ bazel run --config opt server:sybim -- -port 8080
 ```

@@ -4,14 +4,14 @@
 #include <unistd.h>
 
 #include <glog/logging.h>
+#include <gflags/gflags.h>
 
-#include "seasocks/PrintfLogger.h"
-#include "seasocks/Server.h"
-#include "seasocks/StringUtil.h"
-#include "seasocks/WebSocket.h"
-#include "seasocks/util/Json.h"
+#include <seasocks/PrintfLogger.h>
+#include <seasocks/Server.h>
+#include <seasocks/StringUtil.h>
+#include <seasocks/WebSocket.h>
+#include <seasocks/util/Json.h>
 
-#include "logger.h"
 #include "util.h"
 
 using namespace seasocks;
@@ -475,42 +475,19 @@ class SyncHandler : public WebSocket::Handler {
   }
 };
 
+DEFINE_int32(port, 8080, "Port to listen to");
+
 int main(int argc, char *argv[]) {
   google::InstallFailureSignalHandler();
-
-  std::string path;
-  std::string log_folder("./logs");
-  int port = 8080;
-  int opt;
-  while ((opt = getopt(argc, argv, "h:p:l:")) != -1) {
-    switch (opt) {
-      case 'a':
-        path = optarg;
-        break;
-      case 'p':
-        port = std::stoi(optarg);
-        break;
-      case 'l':
-        log_folder = optarg;
-        break;
-      default:
-        std::cerr << "Unknown option " << static_cast<char>(opt) << std::endl;
-        return -1;
-    }
-  }
-
   FLAGS_alsologtostderr = 1;
-  FLAGS_log_dir = log_folder;
   google::InitGoogleLogging(argv[0]);
-  auto logger = std::make_shared<FileLogger>(log_folder + "/seasocks.log");
 
-  LOG(INFO) << "Logs is in " << log_folder;
-
+  auto logger = std::make_shared<seasocks::PrintfLogger>();
   Server server(logger);
 
   auto handler = std::make_shared<SyncHandler>(&server);
   server.addWebSocketHandler("/ws", handler);
-  server.startListening(port);
+  server.startListening(FLAGS_port);
   server.loop();
 
   return 0;
